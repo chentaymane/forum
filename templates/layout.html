@@ -1,0 +1,41 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{template "title" .}} - Forum</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <div class="nav-left">
+                <a href="/">Home</a>
+            </div>
+            <div class="nav-right">
+                {{if .User}}
+                <span>Welcome, {{.User.Username}}</span>
+                <a href="/create-post">Create Post</a>
+                <form action="/auth/logout" method="POST" style="display:inline;">
+                    <button type="submit" class="nav-btn">Logout</button>
+                </form>
+                {{else}}
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+                {{end}}
+            </div>
+        </nav>
+    </header>
+    <main>
+        {{template "content" .}}
+    </main>
+    <footer>
+        <p>&copy; 2026 Forum Project</p>
+    </footer>
+</body>
+
+</html>
+{{end}}

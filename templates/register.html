@@ -1,0 +1,23 @@
+{{define "title"}}Register{{end}}
+
+{{define "content"}}
+<div class="auth-form">
+    <h2>Register</h2>
+    <form action="/auth/register" method="POST">
+        <div class="field">
+            <label>Email</label>
+            <input type="email" name="email" required>
+        </div>
+        <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" required>
+        </div>
+        <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="/login">Login here</a></p>
+</div>
+{{end}}
