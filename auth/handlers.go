@@ -39,8 +39,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insert user
-	_, err = database.DB.Exec("INSERT INTO users (email, username, password) VALUES (?, ?, ?)", email, username, hashedPassword)
-	// Insert user
 	res, err := database.DB.Exec(
 		"INSERT INTO users (email, username, password) VALUES (?, ?, ?)",
 		email, username, hashedPassword,
@@ -66,13 +64,8 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//  Set cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    sessionID,
-		Path:     "/",
-		HttpOnly: true,
-	})
-
+	SetSessionCookie(w, sessionID)
+	
 	// Redirect to home page
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
