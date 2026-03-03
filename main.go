@@ -33,7 +33,7 @@ func main() {
 	mux.HandleFunc("POST /auth/register", auth.RegisterHandler)
 	mux.HandleFunc("POST /auth/login", auth.LoginHandler)
 	mux.HandleFunc("POST /auth/logout", auth.LogoutHandler)
-	mux.HandleFunc("POST /api/posts/", forum.CreatePostHandler)
+	mux.HandleFunc("POST /api/posts", forum.CreatePostHandler)
 	mux.HandleFunc("POST /api/posts/delete", forum.DeletePostHandler)
 	mux.HandleFunc("POST /api/comments", forum.CreateCommentHandler)
 	mux.HandleFunc("POST /api/likes", forum.LikeDislikeHandler)

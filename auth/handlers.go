@@ -40,13 +40,41 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Insert user
 	_, err = database.DB.Exec("INSERT INTO users (email, username, password) VALUES (?, ?, ?)", email, username, hashedPassword)
+	// Insert user
+	res, err := database.DB.Exec(
+		"INSERT INTO users (email, username, password) VALUES (?, ?, ?)",
+		email, username, hashedPassword,
+	)
 	if err != nil {
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
 		return
 	}
 
-	// Redirect to login page after successful registration
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	// Get inserted user ID
+	userID64, err := res.LastInsertId()
+	if err != nil {
+		http.Error(w, "Failed to get user ID", http.StatusInternalServerError)
+		return
+	}
+	userID := int(userID64)
+
+	//  Create session
+	sessionID, err := CreateSession(userID)
+	if err != nil {
+		http.Error(w, "Failed to create session", http.StatusInternalServerError)
+		return
+	}
+
+	//  Set cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+	})
+
+	// Redirect to home page
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // LoginHandler handles user login.
@@ -86,7 +114,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 // LogoutHandler handles user logout.
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(SessionCookieName)
+	cookie, err := r.Cookie(SESSION_COOKIE_NAME)
 	if err != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -96,7 +124,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Clear cookie
 	http.SetCookie(w, &http.Cookie{
-		Name:     SessionCookieName,
+		Name:     SESSION_COOKIE_NAME,
 		Value:    "",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,

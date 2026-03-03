@@ -11,7 +11,7 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-const SessionCookieName = "forum_session"
+const SESSION_COOKIE_NAME = "forum_session"
 
 // CreateSession creates a new session for a user and returns its ID.
 func CreateSession(userID int) (string, error) {
@@ -63,7 +63,7 @@ func DeleteSession(sessionID string) error {
 // SetSessionCookie sets a session cookie in the response.
 func SetSessionCookie(w http.ResponseWriter, sessionID string) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     SessionCookieName,
+		Name:     SESSION_COOKIE_NAME,
 		Value:    sessionID,
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
@@ -73,7 +73,7 @@ func SetSessionCookie(w http.ResponseWriter, sessionID string) {
 
 // GetUserFromRequest returns the user ID from the session cookie in the request.
 func GetUserFromRequest(r *http.Request) (int, error) {
-	cookie, err := r.Cookie(SessionCookieName)
+	cookie, err := r.Cookie(SESSION_COOKIE_NAME)
 	if err != nil {
 		return 0, err
 	}

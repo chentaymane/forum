@@ -20,6 +20,7 @@ func InitDB() error {
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
+	DB.Exec("PRAGMA foreign_keys = ON")
 
 	if err = DB.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
@@ -67,8 +68,7 @@ func createTables() error {
 		user_id INTEGER NOT NULL,
 		content TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (user_id) REFERENCES users(id)
-	);`
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE	);`
 
 	commentsTable := `
 	CREATE TABLE IF NOT EXISTS comments (
@@ -77,8 +77,8 @@ func createTables() error {
 		user_id INTEGER NOT NULL,
 		content TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (post_id) REFERENCES posts(id),
-		FOREIGN KEY (user_id) REFERENCES users(id)
+		FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 	);`
 
 	categoriesTable := `
@@ -92,8 +92,8 @@ func createTables() error {
 		post_id INTEGER NOT NULL,
 		category_id INTEGER NOT NULL,
 		PRIMARY KEY (post_id, category_id),
-		FOREIGN KEY (post_id) REFERENCES posts(id),
-		FOREIGN KEY (category_id) REFERENCES categories(id)
+		FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+		FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 	);`
 
 	likesDislikesTable := `
@@ -104,9 +104,9 @@ func createTables() error {
 		comment_id INTEGER,
 		type INTEGER NOT NULL, -- 1 for like, -1 for dislike
 		UNIQUE(user_id, post_id, comment_id),
-		FOREIGN KEY (user_id) REFERENCES users(id),
-		FOREIGN KEY (post_id) REFERENCES posts(id),
-		FOREIGN KEY (comment_id) REFERENCES comments(id),
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+		FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE
 		CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR (post_id IS NULL AND comment_id IS NOT NULL))
 	);`
 
@@ -115,8 +115,7 @@ func createTables() error {
 		id TEXT PRIMARY KEY, -- UUID
 		user_id INTEGER NOT NULL,
 		expires_at DATETIME NOT NULL,
-		FOREIGN KEY (user_id) REFERENCES users(id)
-	);`
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE	);`
 
 	queries := []string{
 		usersTable,
