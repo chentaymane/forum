@@ -51,7 +51,7 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create post", http.StatusInternalServerError)
 		return
 	}
-
+	
 	postID, _ := res.LastInsertId()
 
 	// Associate categories
@@ -128,6 +128,7 @@ func GetPosts(categoryID int, userID int, likedByUserID int, limit int, offset i
 		if err := rows.Scan(&p.ID, &p.UserID, &p.Username, &p.Content, &p.CreatedAt); err != nil {
 			return nil, err
 		}
+		
 		// Load categories, likes, dislikes, and comments for each post
 		p.Categories, _ = getPostCategories(p.ID)
 		p.Likes, p.Dislikes, _ = GetLikesCount(p.ID, 0)
