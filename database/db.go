@@ -34,10 +34,6 @@ func InitDB() error {
 		return fmt.Errorf("failed to seed categories: %w", err)
 	}
 
-	if err = seedPosts(); err != nil {
-		return fmt.Errorf("failed to seed posts: %w", err)
-	}
-
 	fmt.Println("Database initialized successfully")
 	return nil
 }
@@ -137,55 +133,4 @@ func createTables() error {
 	return nil
 }
 
-func seedPosts() error {
-	var count int
-	err := DB.QueryRow("SELECT COUNT(*) FROM posts").Scan(&count)
-	if err != nil {
-		return err
-	}
-	if count >= 100 {
-		return nil
-	}
 
-	fmt.Println("Seeding 100 dummy posts...")
-	// Ensure dummy user
-	_, err = DB.Exec("INSERT OR IGNORE INTO users (username, email, password) VALUES (?, ?, ?)", "admin", "admin@example.com", "$2a$14$V08M9Y.A.3jE0.D3b7W8r.C0F3F3F3F3F3F3F3F3F3F3F3F3F3")
-	if err != nil {
-		return err
-	}
-
-	var userID int
-	err = DB.QueryRow("SELECT id FROM users WHERE username = 'admin'").Scan(&userID)
-	if err != nil {
-		return err
-	}
-
-	// Categories
-	rows, err := DB.Query("SELECT id FROM categories")
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	var catIDs []int
-	for rows.Next() {
-		var id int
-		rows.Scan(&id)
-		catIDs = append(catIDs, id)
-	}
-
-	subjects := []string{"How to", "Why is", "Exploring", "The future of", "Deep dive into", "My thoughts on"}
-	topics := []string{"Golang", "SQLite", "Web Dev", "Docker", "HTMX", "CSS Animation", "Quantum Computing", "Ancient History", "Cooking"}
-
-	for i := count + 1; i <= 100; i++ {
-		content := fmt.Sprintf("%s %s. This is dummy post number %d. It contains some interesting thoughts about development and more.", subjects[i%len(subjects)], topics[i%len(topics)], i)
-		res, err := DB.Exec("INSERT INTO posts (user_id, content) VALUES (?, ?)", userID, content)
-		if err != nil {
-			continue
-		}
-		postID, _ := res.LastInsertId()
-		if len(catIDs) > 0 {
-			DB.Exec("INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)", postID, catIDs[i%len(catIDs)])
-		}
-	}
-	return nil
-}
