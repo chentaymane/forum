@@ -42,6 +42,7 @@ type PageData struct {
 	CategoryID  int
 	MyPosts     bool
 	MyLiked     bool
+	MyComments  bool
 	HasPrev     bool
 	HasNext     bool
 	PrevPage    int
@@ -73,6 +74,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	catIDStr := r.URL.Query().Get("category_id")
 	myPosts := r.URL.Query().Get("my_posts")
 	myLiked := r.URL.Query().Get("my_liked_posts")
+	myComments := r.URL.Query().Get("my_comments")
 	pageStr := r.PathValue("page")
 	if pageStr == "" {
 		pageStr = r.URL.Query().Get("page")
@@ -93,17 +95,21 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	if myLiked == "1" {
 		likedByUserID = userID
 	}
+	commentedByUserID := 0
+	if myComments == "1" {
+		commentedByUserID = userID
+	}
 
 	pageSize := 12
 	offset := (currentPage - 1) * pageSize
 
-	posts, err := forum.GetPosts(catID, filterUserID, likedByUserID, pageSize, offset)
+	posts, err := forum.GetPosts(catID, filterUserID, likedByUserID, commentedByUserID, pageSize, offset)
 	if err != nil {
 		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
 		return
 	}
 
-	totalPosts, err := forum.GetPostsCount(catID, filterUserID, likedByUserID)
+	totalPosts, err := forum.GetPostsCount(catID, filterUserID, likedByUserID, commentedByUserID)
 	if err != nil {
 		http.Error(w, "Error counting posts", http.StatusInternalServerError)
 		return
@@ -125,6 +131,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		CategoryID:  catID,
 		MyPosts:     myPosts == "1",
 		MyLiked:     myLiked == "1",
+		MyComments:  myComments == "1",
 		HasPrev:     currentPage > 1,
 		HasNext:     currentPage < totalPages,
 		PrevPage:    currentPage - 1,

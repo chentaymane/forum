@@ -14,8 +14,9 @@
         {{if .User}}
         <h3>My Posts</h3>
         <ul>
-            <li><a href="/?my_posts=1">Created Posts</a></li>
-            <li><a href="/?my_liked_posts=1">Liked Posts</a></li>
+        <li><a href="/?my_posts=1">Created Posts</a></li>
+    <li><a href="/?my_liked_posts=1">Liked Posts</a></li>
+    <li><a href="/?my_comments=1">Commented Posts</a></li>
         </ul>
         {{end}}
     </aside>
@@ -59,25 +60,27 @@
 </div>
 
             <div class="comments-section">
-                {{if .Comments}}
-                <h4>Comments</h4>
+    {{if .Comments}}
+    <h4>Comments</h4>
+    {{end}}
 
-                {{range .Comments}}
-                <div class="comment">
-                    <span class="comment-author">{{.Username}}:</span>
-                    <span class="comment-content">{{.Content}}</span>
-                </div>
-                {{end}}
-                {{end}}
+    <div class="comments-list" id="comments-{{.ID}}">
+        {{range .Comments}}
+        <div class="comment">
+            <span class="comment-author">{{.Username}}:</span>
+            <span class="comment-content">{{.Content}}</span>
+        </div>
+        {{end}}
+    </div>
 
-                {{if $.User}}
-                <form action="/api/comments" method="POST" class="comment-form">
-                    <input type="hidden" name="post_id" value="{{.ID}}">
-                    <input type="text" name="content" placeholder="Add a comment..." required>
-                    <button type="submit">Send</button>
-                </form>
-                {{end}}
-            </div>
+    {{if $.User}}
+    <form class="comment-form" onsubmit="sendComment(event, '{{.ID}}')">
+        <input type="hidden" name="post_id" value="{{.ID}}">
+        <input type="text" name="content" placeholder="Add a comment..." required>
+        <button type="submit">Send</button>
+    </form>
+    {{end}}
+</div>
         </article>
         {{else}}
         <p>No posts found.</p>
@@ -85,14 +88,14 @@
 
         <nav class="pagination">
             {{if .HasPrev}}
-            <a href="/posts/{{.PrevPage}}?category_id={{.CategoryID}}&my_posts={{if .MyPosts}}1{{else}}0{{end}}&my_liked_posts={{if .MyLiked}}1{{else}}0{{end}}"
+<a href="/posts/{{.PrevPage}}?category_id={{.CategoryID}}&my_posts={{if .MyPosts}}1{{else}}0{{end}}&my_liked_posts={{if .MyLiked}}1{{else}}0{{end}}&my_comments={{if .MyComments}}1{{else}}0{{end}}" class="page-link">Previous</a>
                 class="page-link">Previous</a>
             {{end}}
 
             <span class="page-info">Page {{.CurrentPage}} of {{.TotalPages}}</span>
 
             {{if .HasNext}}
-            <a href="/posts/{{.NextPage}}?category_id={{.CategoryID}}&my_posts={{if .MyPosts}}1{{else}}0{{end}}&my_liked_posts={{if .MyLiked}}1{{else}}0{{end}}"
+<a href="/posts/{{.NextPage}}?category_id={{.CategoryID}}&my_posts={{if .MyPosts}}1{{else}}0{{end}}&my_liked_posts={{if .MyLiked}}1{{else}}0{{end}}&my_comments={{if .MyComments}}1{{else}}0{{end}}" class="page-link">Next</a>
                 class="page-link">Next</a>
             {{end}}
         </nav>
@@ -109,6 +112,35 @@ function sendLike(postID, type, btn) {
         .then(d => {
             document.getElementById("likes-"    + postID).textContent = d.likes;
             document.getElementById("dislikes-" + postID).textContent = d.dislikes;
+        });
+}
+
+function sendComment(event, postID) {
+    event.preventDefault(); // stop the form from reloading the page
+
+    const form    = event.target;
+    const input   = form.querySelector("input[name='content']");
+    const content = input.value.trim();
+    if (!content) return;
+
+    const data = new FormData();
+    data.append("post_id", postID);
+    data.append("content", content);
+
+    fetch("/api/comments", { method: "POST", body: data })
+        .then(r => r.json())
+        .then(d => {
+            // build the new comment div
+            const div    = document.createElement("div");
+            div.className = "comment";
+            div.innerHTML = `<span class="comment-author">${d.username}:</span>
+                             <span class="comment-content">${d.content}</span>`;
+
+            // append it to the list
+            document.getElementById("comments-" + postID).appendChild(div);
+
+            // clear the input
+            input.value = "";
         });
 }
 </script>

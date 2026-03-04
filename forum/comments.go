@@ -1,6 +1,7 @@
 package forum
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"forum/auth"
@@ -33,13 +34,24 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = database.DB.Exec("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)", postID, userID, content)
+	_, err = database.DB.Exec(
+		"INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)",
+		postID, userID, content,
+	)
 	if err != nil {
 		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	// get the username to display immediately
+	var username string
+	database.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"username": username,
+		"content":  content,
+	})
 }
 
 // GetCommentsByPost retrieves all comments for a specific post.

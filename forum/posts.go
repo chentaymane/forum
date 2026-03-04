@@ -51,7 +51,7 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create post", http.StatusInternalServerError)
 		return
 	}
-	
+
 	postID, _ := res.LastInsertId()
 
 	// Associate categories
@@ -72,15 +72,15 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPosts retrieves posts with filtering and pagination.
-func GetPosts(categoryID int, userID int, likedByUserID int, limit int, offset int) ([]Post, error) {
+func GetPosts(categoryID int, userID int, likedByUserID int, commentedByUserID int, limit int, offset int) ([]Post, error) {
 	var query strings.Builder
 	var args []interface{}
 
 	query.WriteString(`
-		SELECT p.id, p.user_id, u.username, p.content, p.created_at
-		FROM posts p
-		JOIN users u ON p.user_id = u.id
-	`)
+        SELECT p.id, p.user_id, u.username, p.content, p.created_at
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+    `)
 
 	where := []string{}
 
@@ -99,6 +99,11 @@ func GetPosts(categoryID int, userID int, likedByUserID int, limit int, offset i
 		query.WriteString(" JOIN likes_dislikes ld ON p.id = ld.post_id")
 		where = append(where, "ld.user_id = ? AND ld.type = 1")
 		args = append(args, likedByUserID)
+	}
+
+	if commentedByUserID > 0 {
+		where = append(where, "p.id IN (SELECT post_id FROM comments WHERE user_id = ?)")
+		args = append(args, commentedByUserID)
 	}
 
 	if len(where) > 0 {
@@ -128,8 +133,6 @@ func GetPosts(categoryID int, userID int, likedByUserID int, limit int, offset i
 		if err := rows.Scan(&p.ID, &p.UserID, &p.Username, &p.Content, &p.CreatedAt); err != nil {
 			return nil, err
 		}
-		
-		// Load categories, likes, dislikes, and comments for each post
 		p.Categories, _ = getPostCategories(p.ID)
 		p.Likes, p.Dislikes, _ = GetLikesCount(p.ID, 0)
 		p.Comments, _ = GetCommentsByPost(p.ID)
@@ -140,15 +143,15 @@ func GetPosts(categoryID int, userID int, likedByUserID int, limit int, offset i
 }
 
 // GetPostsCount returns the total number of posts matching the filters.
-func GetPostsCount(categoryID int, userID int, likedByUserID int) (int, error) {
+func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUserID int) (int, error) {
 	var query strings.Builder
 	var args []interface{}
 
 	query.WriteString(`
-		SELECT COUNT(DISTINCT p.id)
-		FROM posts p
-		JOIN users u ON p.user_id = u.id
-	`)
+        SELECT COUNT(DISTINCT p.id)
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+    `)
 
 	where := []string{}
 
@@ -169,6 +172,11 @@ func GetPostsCount(categoryID int, userID int, likedByUserID int) (int, error) {
 		args = append(args, likedByUserID)
 	}
 
+	if commentedByUserID > 0 {
+		where = append(where, "p.id IN (SELECT post_id FROM comments WHERE user_id = ?)")
+		args = append(args, commentedByUserID)
+	}
+
 	if len(where) > 0 {
 		query.WriteString(" WHERE " + strings.Join(where, " AND "))
 	}
@@ -177,7 +185,6 @@ func GetPostsCount(categoryID int, userID int, likedByUserID int) (int, error) {
 	err := database.DB.QueryRow(query.String(), args...).Scan(&count)
 	return count, err
 }
-
 func getPostCategories(postID int) ([]string, error) {
 	rows, err := database.DB.Query(`
 		SELECT c.name FROM categories c
