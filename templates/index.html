@@ -49,23 +49,14 @@
             </div>
 
             <div class="post-actions">
-                {{if $.User}}
-                <form action="/api/likes" method="POST" class="inline-form">
-                    <input type="hidden" name="post_id" value="{{.ID}}">
-                    <input type="hidden" name="type" value="1">
-                    <button type="submit" class="action-btn">👍 {{.Likes}}</button>
-                </form>
-                <form action="/api/likes" method="POST" class="inline-form">
-                    <input type="hidden" name="post_id" value="{{.ID}}">
-                    <input type="hidden" name="type" value="-1">
-                    <button type="submit" class="action-btn">👎 {{.Dislikes}}</button>
-                </form>
-
-                {{else}}
-                <span>👍 {{.Likes}}</span>
-                <span>👎 {{.Dislikes}}</span>
-                {{end}}
-            </div>
+    {{if $.User}}
+    <button class="action-btn" onclick="sendLike('{{.ID}}', '1', this)">👍 <span id="likes-{{.ID}}">{{.Likes}}</span></button>
+    <button class="action-btn" onclick="sendLike('{{.ID}}', '-1', this)">👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></button>
+    {{else}}
+    <span>👍 {{.Likes}}</span>
+    <span>👎 {{.Dislikes}}</span>
+    {{end}}
+</div>
 
             <div class="comments-section">
                 {{if .Comments}}
@@ -107,4 +98,18 @@
         </nav>
     </section>
 </div>
+<script>
+function sendLike(postID, type, btn) {
+    const data = new FormData();
+    data.append("post_id", postID);
+    data.append("type", type);
+
+    fetch("/api/likes", { method: "POST", body: data })
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById("likes-"    + postID).textContent = d.likes;
+            document.getElementById("dislikes-" + postID).textContent = d.dislikes;
+        });
+}
+</script>
 {{end}}

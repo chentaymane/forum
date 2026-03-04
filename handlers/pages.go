@@ -94,7 +94,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		likedByUserID = userID
 	}
 
-	pageSize := 10
+	pageSize := 12
 	offset := (currentPage - 1) * pageSize
 
 	posts, err := forum.GetPosts(catID, filterUserID, likedByUserID, pageSize, offset)

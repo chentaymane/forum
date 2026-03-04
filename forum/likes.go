@@ -1,6 +1,7 @@
 package forum
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"forum/auth"
@@ -17,27 +18,24 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 
 	postID := r.FormValue("post_id")
 	commentID := r.FormValue("comment_id")
-	likeType := r.FormValue("type") // "1" for like, "-1" for dislike
+	likeType := r.FormValue("type")
 
 	if (postID == "" && commentID == "") || (likeType != "1" && likeType != "-1") {
-		http.Error(w, "Target ID and A valid type are required", http.StatusBadRequest)
+		http.Error(w, "Invalid parameters", http.StatusBadRequest)
 		return
 	}
 
-	// Determine if we are liking a post or a comment
 	var query string
 	var targetID string
+
 	if postID != "" {
 		deletePrevReaction(userID, postID, "")
 		query = "INSERT INTO likes_dislikes (user_id, post_id, type) VALUES (?, ?, ?)"
 		targetID = postID
-	} else if commentID != "" {
+	} else {
 		deletePrevReaction(userID, "", commentID)
 		query = "INSERT INTO likes_dislikes (user_id, comment_id, type) VALUES (?, ?, ?)"
 		targetID = commentID
-	} else {
-		http.Error(w, "Invalid target ID", http.StatusBadRequest)
-		return
 	}
 
 	_, err = database.DB.Exec(query, userID, targetID, likeType)
@@ -46,7 +44,18 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	// Count updated likes/dislikes
+	var likes, dislikes int
+	if postID != "" {
+		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE post_id = ? AND type = 1", targetID).Scan(&likes)
+		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE post_id = ? AND type = -1", targetID).Scan(&dislikes)
+	} else {
+		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE comment_id = ? AND type = 1", targetID).Scan(&likes)
+		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE comment_id = ? AND type = -1", targetID).Scan(&dislikes)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]int{"likes": likes, "dislikes": dislikes})
 }
 
 func deletePrevReaction(userID int, postID, commentID string) {
