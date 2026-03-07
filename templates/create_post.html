@@ -5,6 +5,11 @@
     <h2>Create New Post</h2>
     <form action="/api/posts" method="POST">
         <div class="field">
+            <label>Title</label>
+            <input type="text" name="title" required
+                style="width: 100%; padding: 0.625rem; border: 1px solid var(--border); border-radius: 0.375rem; box-sizing: border-box; font-family: inherit; font-size: inherit;">
+        </div>
+        <div class="field">
             <label>Categories (Select one or more)</label>
             <div class="category-selection" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
                 {{range .Categories}}

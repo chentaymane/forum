@@ -1,0 +1,14 @@
+{{define "title"}}Error{{end}}
+
+{{define "content"}}
+<div class="container error-container">
+    <div class="error-box">
+        <h1 class="error-code">{{.ErrorCode}}</h1>
+        <h2 class="error-title">{{.ErrorTitle}}</h2>
+        <p class="error-message">{{.ErrorMessage}}</p>
+        <div class="error-actions">
+            <a href="/" class="error-link">← Back to Home</a>
+        </div>
+    </div>
+</div>
+{{end}}

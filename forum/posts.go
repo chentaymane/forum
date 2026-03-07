@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"forum/auth"
 	"forum/database"
@@ -11,27 +12,74 @@ import (
 
 // Post represents a forum post.
 type Post struct {
-	ID         int
-	UserID     int
-	Username   string
-	Content    string
-	CreatedAt  string
-	Categories []string
-	Likes      int
-	Dislikes   int
-	Comments   []Comment
+	ID           int
+	UserID       int
+	Username     string
+	Title        string
+	Content      string
+	CreatedAt    string
+	Categories   []string
+	Likes        int
+	Dislikes     int
+	Comments     []Comment
+	CommentCount int
+}
+
+// TruncateContent returns content truncated to 150 characters with "..."
+func TruncateContent(content string, maxLength int) string {
+	if utf8.RuneCountInString(content) <= maxLength {
+		return content
+	}
+
+	runes := []rune(content)
+	truncated := string(runes[:maxLength])
+	return truncated + "..."
+}
+
+// GetPostByID retrieves a single post by its ID.
+func GetPostByID(postID int) (*Post, error) {
+	var p Post
+	err := database.DB.QueryRow(`
+		SELECT p.id, p.user_id, u.username, p.title, p.content, p.created_at
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		WHERE p.id = ?
+	`, postID).Scan(&p.ID, &p.UserID, &p.Username, &p.Title, &p.Content, &p.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Load categories, likes, dislikes, and comments
+	p.Categories, _ = getPostCategories(p.ID)
+	p.Likes, p.Dislikes, _ = GetLikesCount(p.ID, 0)
+	p.Comments, _ = GetCommentsByPost(p.ID)
+	p.CommentCount = len(p.Comments)
+
+	return &p, nil
 }
 
 // CreatePostHandler handles post creation.
 func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	title := r.FormValue("title")
 	content := r.FormValue("content")
 	categoryIDsStr := r.PostForm["categories"] // Expected as multiples
+
+	if title == "" {
+		http.Error(w, "Title is required", http.StatusBadRequest)
+		return
+	}
 
 	if content == "" {
 		http.Error(w, "Content is required", http.StatusBadRequest)
@@ -43,10 +91,10 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
-	defer tx.Rollback()
+	//defer tx.Rollback()
 
 	// Insert post
-	res, err := tx.Exec("INSERT INTO posts (user_id, content) VALUES (?, ?)", userID, content)
+	res, err := tx.Exec("INSERT INTO posts (user_id, title, content) VALUES (?, ?, ?)", userID, title, content)
 	if err != nil {
 		http.Error(w, "Failed to create post", http.StatusInternalServerError)
 		return
@@ -72,15 +120,15 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPosts retrieves posts with filtering and pagination.
-func GetPosts(categoryID int, userID int, likedByUserID int, commentedByUserID int, limit int, offset int) ([]Post, error) {
+func GetPosts(categoryID int, userID int, likedByUserID int, limit int, offset int) ([]Post, error) {
 	var query strings.Builder
 	var args []interface{}
 
 	query.WriteString(`
-        SELECT p.id, p.user_id, u.username, p.content, p.created_at
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
-    `)
+		SELECT p.id, p.user_id, u.username, p.title, p.content, p.created_at
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+	`)
 
 	where := []string{}
 
@@ -99,11 +147,6 @@ func GetPosts(categoryID int, userID int, likedByUserID int, commentedByUserID i
 		query.WriteString(" JOIN likes_dislikes ld ON p.id = ld.post_id")
 		where = append(where, "ld.user_id = ? AND ld.type = 1")
 		args = append(args, likedByUserID)
-	}
-
-	if commentedByUserID > 0 {
-		where = append(where, "p.id IN (SELECT post_id FROM comments WHERE user_id = ?)")
-		args = append(args, commentedByUserID)
 	}
 
 	if len(where) > 0 {
@@ -130,12 +173,14 @@ func GetPosts(categoryID int, userID int, likedByUserID int, commentedByUserID i
 	var posts []Post
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.ID, &p.UserID, &p.Username, &p.Content, &p.CreatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Username, &p.Title, &p.Content, &p.CreatedAt); err != nil {
 			return nil, err
 		}
+		// Load categories, likes, dislikes, and comments for each post
 		p.Categories, _ = getPostCategories(p.ID)
 		p.Likes, p.Dislikes, _ = GetLikesCount(p.ID, 0)
 		p.Comments, _ = GetCommentsByPost(p.ID)
+		p.CommentCount = len(p.Comments)
 		posts = append(posts, p)
 	}
 
@@ -143,15 +188,15 @@ func GetPosts(categoryID int, userID int, likedByUserID int, commentedByUserID i
 }
 
 // GetPostsCount returns the total number of posts matching the filters.
-func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUserID int) (int, error) {
+func GetPostsCount(categoryID int, userID int, likedByUserID int) (int, error) {
 	var query strings.Builder
-	var args []interface{}
+	var args []any
 
 	query.WriteString(`
-        SELECT COUNT(DISTINCT p.id)
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
-    `)
+		SELECT COUNT(DISTINCT p.id)
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+	`)
 
 	where := []string{}
 
@@ -172,11 +217,6 @@ func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUse
 		args = append(args, likedByUserID)
 	}
 
-	if commentedByUserID > 0 {
-		where = append(where, "p.id IN (SELECT post_id FROM comments WHERE user_id = ?)")
-		args = append(args, commentedByUserID)
-	}
-
 	if len(where) > 0 {
 		query.WriteString(" WHERE " + strings.Join(where, " AND "))
 	}
@@ -185,6 +225,7 @@ func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUse
 	err := database.DB.QueryRow(query.String(), args...).Scan(&count)
 	return count, err
 }
+
 func getPostCategories(postID int) ([]string, error) {
 	rows, err := database.DB.Query(`
 		SELECT c.name FROM categories c
@@ -209,6 +250,11 @@ func getPostCategories(postID int) ([]string, error) {
 
 // DeletePostHandler handles the deletion of a post.
 func DeletePostHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

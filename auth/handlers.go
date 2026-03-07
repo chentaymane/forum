@@ -11,6 +11,10 @@ import (
 
 // RegisterHandler handles user registration.
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	email := strings.ToLower(strings.TrimSpace(r.FormValue("email")))
 	username := strings.ToLower(strings.TrimSpace(r.FormValue("username")))
 	password := r.FormValue("password")
@@ -39,39 +43,23 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insert user
-	res, err := database.DB.Exec(
-		"INSERT INTO users (email, username, password) VALUES (?, ?, ?)",
-		email, username, hashedPassword,
-	)
+	_, err = database.DB.Exec("INSERT INTO users (email, username, password) VALUES (?, ?, ?)", email, username, hashedPassword)
 	if err != nil {
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
 		return
 	}
 
-	// Get inserted user ID
-	userID64, err := res.LastInsertId()
-	if err != nil {
-		http.Error(w, "Failed to get user ID", http.StatusInternalServerError)
-		return
-	}
-	userID := int(userID64)
-
-	//  Create session
-	sessionID, err := CreateSession(userID)
-	if err != nil {
-		http.Error(w, "Failed to create session", http.StatusInternalServerError)
-		return
-	}
-
-	//  Set cookie
-	SetSessionCookie(w, sessionID)
-	
-	// Redirect to home page
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	// Redirect to login page after successful registration
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 // LoginHandler handles user login.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	email := strings.ToLower(strings.TrimSpace(r.FormValue("email")))
 	password := r.FormValue("password")
 
@@ -107,7 +95,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 // LogoutHandler handles user logout.
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(SESSION_COOKIE_NAME)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -117,7 +109,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Clear cookie
 	http.SetCookie(w, &http.Cookie{
-		Name:     SESSION_COOKIE_NAME,
+		Name:     SessionCookieName,
 		Value:    "",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,

@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"unicode/utf8"
 
 	"forum/auth"
 	"forum/database"
@@ -18,8 +20,19 @@ func getTemplate(name string) (*template.Template, error) {
 		return tmpl, nil
 	}
 
+	// Custom template functions
+	funcMap := template.FuncMap{
+		"truncate": func(content string, maxLength int) string {
+			if utf8.RuneCountInString(content) <= maxLength {
+				return content
+			}
+			runes := []rune(content)
+			return string(runes[:maxLength]) + "..."
+		},
+	}
+
 	// For each page, we parse the layout and the specific template
-	tmpl, err := template.ParseFiles(
+	tmpl, err := template.New("base").Funcs(funcMap).ParseFiles(
 		filepath.Join("templates", "layout.html"),
 		filepath.Join("templates", name+".html"),
 	)
@@ -42,7 +55,6 @@ type PageData struct {
 	CategoryID  int
 	MyPosts     bool
 	MyLiked     bool
-	MyComments  bool
 	HasPrev     bool
 	HasNext     bool
 	PrevPage    int
@@ -59,8 +71,42 @@ type Category struct {
 	Name string
 }
 
+// ErrorData represents error page data.
+type ErrorData struct {
+	ErrorCode    int
+	ErrorTitle   string
+	ErrorMessage string
+}
+
+// RenderError renders an error page with the given status code and message.
+func RenderError(w http.ResponseWriter, statusCode int, title string, message string) {
+	tmpl, err := getTemplate("error")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(statusCode)
+	data := ErrorData{
+		ErrorCode:    statusCode,
+		ErrorTitle:   title,
+		ErrorMessage: message,
+	}
+
+	err = tmpl.ExecuteTemplate(w, "base", data)
+	if err != nil {
+		// Can't write header again, just log
+		log.Printf("Error rendering error page: %v", err)
+	}
+}
+
 // HomeHandler renders the home page with filtered posts.
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		RenderError(w, http.StatusMethodNotAllowed, "Method Not Allowed", "This endpoint only accepts GET requests.")
+		return
+	}
 	userID, _ := auth.GetUserFromRequest(r)
 	var currentUser *User
 	if userID > 0 {
@@ -72,13 +118,9 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	catIDStr := r.URL.Query().Get("category_id")
+	pageStr := r.URL.Query().Get("page")
 	myPosts := r.URL.Query().Get("my_posts")
 	myLiked := r.URL.Query().Get("my_liked_posts")
-	myComments := r.URL.Query().Get("my_comments")
-	pageStr := r.PathValue("page")
-	if pageStr == "" {
-		pageStr = r.URL.Query().Get("page")
-	}
 
 	catID, _ := strconv.Atoi(catIDStr)
 	currentPage, _ := strconv.Atoi(pageStr)
@@ -95,21 +137,17 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	if myLiked == "1" {
 		likedByUserID = userID
 	}
-	commentedByUserID := 0
-	if myComments == "1" {
-		commentedByUserID = userID
-	}
 
-	pageSize := 12
+	pageSize := 10
 	offset := (currentPage - 1) * pageSize
 
-	posts, err := forum.GetPosts(catID, filterUserID, likedByUserID, commentedByUserID, pageSize, offset)
+	posts, err := forum.GetPosts(catID, filterUserID, likedByUserID, pageSize, offset)
 	if err != nil {
 		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
 		return
 	}
 
-	totalPosts, err := forum.GetPostsCount(catID, filterUserID, likedByUserID, commentedByUserID)
+	totalPosts, err := forum.GetPostsCount(catID, filterUserID, likedByUserID)
 	if err != nil {
 		http.Error(w, "Error counting posts", http.StatusInternalServerError)
 		return
@@ -131,7 +169,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		CategoryID:  catID,
 		MyPosts:     myPosts == "1",
 		MyLiked:     myLiked == "1",
-		MyComments:  myComments == "1",
 		HasPrev:     currentPage > 1,
 		HasNext:     currentPage < totalPages,
 		PrevPage:    currentPage - 1,
@@ -162,28 +199,40 @@ func getCategories() ([]Category, error) {
 func renderTemplate(w http.ResponseWriter, tmplName string, data interface{}) {
 	tmpl, err := getTemplate(tmplName)
 	if err != nil {
-		http.Error(w, "Error loading template: "+err.Error(), http.StatusInternalServerError)
+		RenderError(w, http.StatusInternalServerError, "Error", "Failed to load page template.")
 		return
 	}
 
 	err = tmpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
-		http.Error(w, "Error executing template: "+err.Error(), http.StatusInternalServerError)
+		RenderError(w, http.StatusInternalServerError, "Error", "Failed to render page.")
 	}
 }
 
 // LoginPageHandler renders the login page.
 func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		RenderError(w, http.StatusMethodNotAllowed, "Method Not Allowed", "This endpoint only accepts GET requests.")
+		return
+	}
 	renderTemplate(w, "login", nil)
 }
 
 // RegisterPageHandler renders the registration page.
 func RegisterPageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		RenderError(w, http.StatusMethodNotAllowed, "Method Not Allowed", "This endpoint only accepts GET requests.")
+		return
+	}
 	renderTemplate(w, "register", nil)
 }
 
 // CreatePostPageHandler renders the post creation page.
 func CreatePostPageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		RenderError(w, http.StatusMethodNotAllowed, "Method Not Allowed", "This endpoint only accepts GET requests.")
+		return
+	}
 	userID, _ := auth.GetUserFromRequest(r)
 	if userID == 0 {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -200,4 +249,48 @@ func CreatePostPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderTemplate(w, "create_post", data)
+}
+
+// PostDetailPageHandler renders a single post's detail page.
+func PostDetailPageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		RenderError(w, http.StatusMethodNotAllowed, "Method Not Allowed", "This endpoint only accepts GET requests.")
+		return
+	}
+
+	// Extract post ID from URL path (/post/{id})
+	postIDStr := r.URL.Path[len("/post/"):]
+	if postIDStr == "" {
+		RenderError(w, http.StatusBadRequest, "Bad Request", "Invalid post ID.")
+		return
+	}
+
+	userID, _ := auth.GetUserFromRequest(r)
+	var currentUser *User
+	if userID > 0 {
+		var username string
+		err := database.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+		if err == nil {
+			currentUser = &User{ID: userID, Username: username}
+		}
+	}
+
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil {
+		RenderError(w, http.StatusBadRequest, "Bad Request", "Invalid post ID.")
+		return
+	}
+
+	post, err := forum.GetPostByID(postID)
+	if err != nil {
+		RenderError(w, http.StatusNotFound, "Not Found", "The post you're looking for doesn't exist.")
+		return
+	}
+
+	data := PageData{
+		User:  currentUser,
+		Posts: []forum.Post{*post},
+	}
+
+	renderTemplate(w, "post_detail", data)
 }

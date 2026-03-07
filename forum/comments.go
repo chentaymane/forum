@@ -1,7 +1,6 @@
 package forum
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"forum/auth"
@@ -16,10 +15,17 @@ type Comment struct {
 	Username  string
 	Content   string
 	CreatedAt string
+	Likes     int
+	Dislikes  int
 }
 
 // CreateCommentHandler handles comment creation.
 func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -34,24 +40,13 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = database.DB.Exec(
-		"INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)",
-		postID, userID, content,
-	)
+	_, err = database.DB.Exec("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)", postID, userID, content)
 	if err != nil {
 		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		return
 	}
+	http.Redirect(w, r, "/post/"+postID, http.StatusSeeOther)
 
-	// get the username to display immediately
-	var username string
-	database.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"username": username,
-		"content":  content,
-	})
 }
 
 // GetCommentsByPost retrieves all comments for a specific post.
@@ -74,8 +69,13 @@ func GetCommentsByPost(postID int) ([]Comment, error) {
 		if err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.Username, &c.Content, &c.CreatedAt); err != nil {
 			return nil, err
 		}
+		// attach like/dislike counts for each comment
+		likes, dislikes, _ := GetLikesCount(0, c.ID)
+		c.Likes = likes
+		c.Dislikes = dislikes
 		comments = append(comments, c)
 	}
 
 	return comments, nil
+
 }

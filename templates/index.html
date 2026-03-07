@@ -14,9 +14,8 @@
         {{if .User}}
         <h3>My Posts</h3>
         <ul>
-        <li><a href="/?my_posts=1">Created Posts</a></li>
-    <li><a href="/?my_liked_posts=1">Liked Posts</a></li>
-    <li><a href="/?my_comments=1">Commented Posts</a></li>
+            <li><a href="/?my_posts=1">Created Posts</a></li>
+            <li><a href="/?my_liked_posts=1">Liked Posts</a></li>
         </ul>
         {{end}}
     </aside>
@@ -24,63 +23,23 @@
     <section class="posts">
         <h2>Posts</h2>
         {{range .Posts}}
-        <article class="post">
-            <header>
+        <article class="post-preview">
+                <h3><a href="/post/{{.ID}}">{{.Title}}</a></h3>
                 <div class="post-meta">
-                    <span class="username">{{.Username}}</span>
+                    <span class="username">By {{.Username}}</span>
                     <span class="date">{{.CreatedAt}}</span>
                 </div>
-                {{if $.User}}
-                {{if eq $.User.ID .UserID}}
-                <form action="/api/posts/delete" method="POST" class="delete-form">
-                    <input type="hidden" name="post_id" value="{{.ID}}">
-                    <button type="submit" class="delete-btn"
-                        onclick="return confirm('Are you sure you want to delete this post?')">Delete</button>
-                </form>
-                {{end}}
-                {{end}}
-            </header>
-            <div class="post-content">
-                {{.Content}}
-            </div>
             <div class="post-categories">
                 {{range .Categories}}
                 <span class="category">{{.}}</span>
                 {{end}}
             </div>
-
-            <div class="post-actions">
-    {{if $.User}}
-    <button class="action-btn" onclick="sendLike('{{.ID}}', '1', this)">👍 <span id="likes-{{.ID}}">{{.Likes}}</span></button>
-    <button class="action-btn" onclick="sendLike('{{.ID}}', '-1', this)">👎 <span id="dislikes-{{.ID}}">{{.Dislikes}}</span></button>
-    {{else}}
-    <span>👍 {{.Likes}}</span>
-    <span>👎 {{.Dislikes}}</span>
-    {{end}}
-</div>
-
-            <div class="comments-section">
-    {{if .Comments}}
-    <h4>Comments</h4>
-    {{end}}
-
-    <div class="comments-list" id="comments-{{.ID}}">
-        {{range .Comments}}
-        <div class="comment">
-            <span class="comment-author">{{.Username}}:</span>
-            <span class="comment-content">{{.Content}}</span>
-        </div>
-        {{end}}
-    </div>
-
-    {{if $.User}}
-    <form class="comment-form" onsubmit="sendComment(event, '{{.ID}}')">
-        <input type="hidden" name="post_id" value="{{.ID}}">
-        <input type="text" name="content" placeholder="Add a comment..." required>
-        <button type="submit">Send</button>
-    </form>
-    {{end}}
-</div>
+            <div class="post-stats">
+                <span class="stat">👍 {{.Likes}}</span>
+                <span class="stat">👎 {{.Dislikes}}</span>
+                <span class="stat">💬 {{.CommentCount}}</span>
+                <a href="/post/{{.ID}}" class="view-link">View Post</a>
+            </div>
         </article>
         {{else}}
         <p>No posts found.</p>
@@ -88,60 +47,17 @@
 
         <nav class="pagination">
             {{if .HasPrev}}
-<a href="/posts/{{.PrevPage}}?category_id={{.CategoryID}}&my_posts={{if .MyPosts}}1{{else}}0{{end}}&my_liked_posts={{if .MyLiked}}1{{else}}0{{end}}&my_comments={{if .MyComments}}1{{else}}0{{end}}" class="page-link">Previous</a>
+            <a href="/?page={{.PrevPage}}{{if .CategoryID}}&category_id={{.CategoryID}}{{end}}{{if .MyPosts}}&my_posts=1{{end}}{{if .MyLiked}}&my_liked_posts=1{{end}}"
                 class="page-link">Previous</a>
             {{end}}
 
             <span class="page-info">Page {{.CurrentPage}} of {{.TotalPages}}</span>
 
             {{if .HasNext}}
-<a href="/posts/{{.NextPage}}?category_id={{.CategoryID}}&my_posts={{if .MyPosts}}1{{else}}0{{end}}&my_liked_posts={{if .MyLiked}}1{{else}}0{{end}}&my_comments={{if .MyComments}}1{{else}}0{{end}}" class="page-link">Next</a>
+            <a href="/?page={{.NextPage}}{{if .CategoryID}}&category_id={{.CategoryID}}{{end}}{{if .MyPosts}}&my_posts=1{{end}}{{if .MyLiked}}&my_liked_posts=1{{end}}"
                 class="page-link">Next</a>
             {{end}}
         </nav>
     </section>
 </div>
-<script>
-function sendLike(postID, type, btn) {
-    const data = new FormData();
-    data.append("post_id", postID);
-    data.append("type", type);
-
-    fetch("/api/likes", { method: "POST", body: data })
-        .then(r => r.json())
-        .then(d => {
-            document.getElementById("likes-"    + postID).textContent = d.likes;
-            document.getElementById("dislikes-" + postID).textContent = d.dislikes;
-        });
-}
-
-function sendComment(event, postID) {
-    event.preventDefault(); // stop the form from reloading the page
-
-    const form    = event.target;
-    const input   = form.querySelector("input[name='content']");
-    const content = input.value.trim();
-    if (!content) return;
-
-    const data = new FormData();
-    data.append("post_id", postID);
-    data.append("content", content);
-
-    fetch("/api/comments", { method: "POST", body: data })
-        .then(r => r.json())
-        .then(d => {
-            // build the new comment div
-            const div    = document.createElement("div");
-            div.className = "comment";
-            div.innerHTML = `<span class="comment-author">${d.username}:</span>
-                             <span class="comment-content">${d.content}</span>`;
-
-            // append it to the list
-            document.getElementById("comments-" + postID).appendChild(div);
-
-            // clear the input
-            input.value = "";
-        });
-}
-</script>
 {{end}}

@@ -1,0 +1,106 @@
+{{define "title"}}Post Detail{{end}}
+
+{{define "content"}}
+<div class="container post-detail-container">
+    {{range .Posts}}
+    <article class="post-detail">
+        <div class="post-detail-header">
+            <div>
+                <h1>{{.Title}}</h1>
+                <div class="post-meta">
+                    <span class="username">By {{.Username}}</span>
+                    <span class="date">{{.CreatedAt}}</span>
+                </div>
+            </div>
+            {{if $.User}}
+            {{if eq $.User.ID .UserID}}
+            <form action="/api/posts/delete" method="POST" class="delete-form">
+                <input type="hidden" name="post_id" value="{{.ID}}">
+                <button type="submit" class="delete-btn"
+                    onclick="return confirm('Are you sure you want to delete this post?')">Delete</button>
+            </form>
+            {{end}}
+            {{end}}
+        </div>
+
+        <div class="post-full-content">
+            {{.Content}}
+        </div>
+
+        <div class="post-categories">
+            {{range .Categories}}
+            <span class="category">{{.}}</span>
+            {{end}}
+        </div>
+
+        <div class="post-actions">
+            {{if $.User}}
+            <form action="/api/likes" method="POST" class="inline-form">
+                <input type="hidden" name="post_id" value="{{.ID}}">
+                <input type="hidden" name="type" value="1">
+                <button type="submit" class="action-btn">👍 {{.Likes}}</button>
+            </form>
+            <form action="/api/likes" method="POST" class="inline-form">
+                <input type="hidden" name="post_id" value="{{.ID}}">
+                <input type="hidden" name="type" value="-1">
+                <button type="submit" class="action-btn">👎 {{.Dislikes}}</button>
+            </form>
+
+            {{else}}
+            <span class="action-btn">👍 {{.Likes}}</span>
+            <span class="action-btn">👎 {{.Dislikes}}</span>
+            {{end}}
+        </div>
+
+        <div class="comments-section">
+            <h3>Comments ({{.CommentCount}})</h3>
+
+            {{if .Comments}}
+            <div class="comments-list">
+                {{range .Comments}}
+                <div class="comment">
+                    <span class="comment-author">{{.Username}}</span>
+                    <span class="comment-date">{{.CreatedAt}}</span>
+                    <p class="comment-content">{{.Content}}</p>
+                    <div class="comment-actions">
+                        {{if $.User}}
+                        <form action="/api/likes" method="POST" class="inline-form">
+                            <input type="hidden" name="comment_id" value="{{.ID}}">
+                            <input type="hidden" name="type" value="1">
+                            <button type="submit" class="action-btn">👍 {{.Likes}}</button>
+                        </form>
+                        <form action="/api/likes" method="POST" class="inline-form">
+                            <input type="hidden" name="comment_id" value="{{.ID}}">
+                            <input type="hidden" name="type" value="-1">
+                            <button type="submit" class="action-btn">👎 {{.Dislikes}}</button>
+                        </form>
+                        {{else}}
+                        <span class="action-btn">👍 {{.Likes}}</span>
+                        <span class="action-btn">👎 {{.Dislikes}}</span>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="no-comments">No comments yet. Be the first to comment!</p>
+            {{end}}
+
+            {{if $.User}}
+            <form action="/api/comments" method="POST" class="comment-form">
+                <input type="hidden" name="post_id" value="{{.ID}}">
+                <textarea name="content" placeholder="Add a comment..." required rows="3"></textarea>
+                <button type="submit">Post Comment</button>
+            </form>
+            {{else}}
+            <p><a href="/login">Login</a> to add a comment.</p>
+            {{end}}
+        </div>
+
+        <div class="post-nav">
+            <a href="/" class="nav-link">← Back to Posts</a>
+        </div>
+    </article>
+    {{end}}
+</div>
+{{end}}

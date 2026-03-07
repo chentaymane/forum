@@ -3,6 +3,7 @@ package forum
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"forum/auth"
 	"forum/database"
@@ -10,6 +11,11 @@ import (
 
 // LikeDislikeHandler handles likes and dislikes for posts and comments.
 func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -18,52 +24,57 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 
 	postID := r.FormValue("post_id")
 	commentID := r.FormValue("comment_id")
-	likeType := r.FormValue("type")
+	likeType := r.FormValue("type") // "1" or "-1"
 
 	if (postID == "" && commentID == "") || (likeType != "1" && likeType != "-1") {
-		http.Error(w, "Invalid parameters", http.StatusBadRequest)
+		http.Error(w, "Invalid reaction request", http.StatusBadRequest)
 		return
 	}
 
-	var query string
-	var targetID string
+	reqType, _ := strconv.Atoi(likeType)
 
-	if postID != "" {
-		deletePrevReaction(userID, postID, "")
-		query = "INSERT INTO likes_dislikes (user_id, post_id, type) VALUES (?, ?, ?)"
-		targetID = postID
-	} else {
-		deletePrevReaction(userID, "", commentID)
-		query = "INSERT INTO likes_dislikes (user_id, comment_id, type) VALUES (?, ?, ?)"
-		targetID = commentID
-	}
-
-	_, err = database.DB.Exec(query, userID, targetID, likeType)
+	// Single insert: triggers handle toggle logic
+	_, err = database.DB.Exec(
+		`INSERT INTO likes_dislikes (user_id, post_id, comment_id, type) VALUES (?, ?, ?, ?)`,
+		userID,
+		nilIfEmpty(postID),
+		nilIfEmpty(commentID),
+		reqType,
+	)
 	if err != nil {
-		http.Error(w, "Failed to process like/dislike", http.StatusInternalServerError)
+		http.Error(w, "Failed to process reaction", http.StatusInternalServerError)
 		return
 	}
 
-	// Count updated likes/dislikes
+	// Get updated counts
 	var likes, dislikes int
 	if postID != "" {
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE post_id = ? AND type = 1", targetID).Scan(&likes)
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE post_id = ? AND type = -1", targetID).Scan(&dislikes)
+		id, _ := strconv.Atoi(postID)
+		likes, dislikes, _ = GetLikesCount(id, 0)
 	} else {
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE comment_id = ? AND type = 1", targetID).Scan(&likes)
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE comment_id = ? AND type = -1", targetID).Scan(&dislikes)
+		id, _ := strconv.Atoi(commentID)
+		likes, dislikes, _ = GetLikesCount(0, id)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]int{"likes": likes, "dislikes": dislikes})
+	// Return JSON for AJAX requests
+	if r.Header.Get("X-Requested-With") == "XMLHttpRequest" ||
+		r.Header.Get("Accept") == "application/json" {
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int{
+			"likes":    likes,
+			"dislikes": dislikes,
+		})
+		return
+	}
 }
 
-func deletePrevReaction(userID int, postID, commentID string) {
-	if postID != "" {
-		database.DB.Exec("DELETE FROM likes_dislikes WHERE user_id = ? AND post_id = ?", userID, postID)
-	} else if commentID != "" {
-		database.DB.Exec("DELETE FROM likes_dislikes WHERE user_id = ? AND comment_id = ?", userID, commentID)
+// Helper: return nil for empty string so SQLite inserts NULL
+func nilIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
 	}
+	return s
 }
 
 // GetLikesCount returns the number of likes and dislikes for a given target.
