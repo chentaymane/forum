@@ -1,7 +1,6 @@
 package forum
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -46,27 +45,21 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get updated counts
-	var likes, dislikes int
-	if postID != "" {
-		id, _ := strconv.Atoi(postID)
-		likes, dislikes, _ = GetLikesCount(id, 0)
-	} else {
-		id, _ := strconv.Atoi(commentID)
-		likes, dislikes, _ = GetLikesCount(0, id)
+	// Redirect back to the post page with fragment (normal form submit, no JS)
+	redirectPostID := postID
+	fragment := "#postreaction"
+	if redirectPostID == "" {
+		var pid int
+		if err := database.DB.QueryRow("SELECT post_id FROM comments WHERE id = ?", commentID).Scan(&pid); err == nil {
+			redirectPostID = strconv.Itoa(pid)
+			fragment = "#comment" + commentID
+		}
 	}
-
-	// Return JSON for AJAX requests
-	if r.Header.Get("X-Requested-With") == "XMLHttpRequest" ||
-		r.Header.Get("Accept") == "application/json" {
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]int{
-			"likes":    likes,
-			"dislikes": dislikes,
-		})
+	if redirectPostID != "" {
+		http.Redirect(w, r, "/post/"+redirectPostID+fragment, http.StatusSeeOther)
 		return
 	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // Helper: return nil for empty string so SQLite inserts NULL

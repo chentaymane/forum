@@ -2,6 +2,7 @@ package forum
 
 import (
 	"net/http"
+	"strconv"
 
 	"forum/auth"
 	"forum/database"
@@ -40,12 +41,13 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = database.DB.Exec("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)", postID, userID, content)
+	res, err := database.DB.Exec("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)", postID, userID, content)
 	if err != nil {
 		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/post/"+postID, http.StatusSeeOther)
+	commentID, _ := res.LastInsertId()
+	http.Redirect(w, r, "/post/"+postID+"#comment"+strconv.FormatInt(commentID, 10), http.StatusSeeOther)
 
 }
 

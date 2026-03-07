@@ -159,7 +159,7 @@ func createTables() error {
 		WHERE post_id IS NULL;`,
 
 		`-- Posts trigger
-		CREATE TRIGGER toggle_post_reaction
+		CREATE TRIGGER IF NOT EXISTS toggle_post_reaction
 		BEFORE INSERT ON likes_dislikes
 		FOR EACH ROW
 		WHEN NEW.comment_id IS NULL
@@ -181,7 +181,7 @@ func createTables() error {
 			AND comment_id IS NULL;
 		END;`,
 
-		`CREATE TRIGGER toggle_comment_reaction
+		`CREATE TRIGGER IF NOT EXISTS toggle_comment_reaction
 		BEFORE INSERT ON likes_dislikes
 		FOR EACH ROW
 		WHEN NEW.post_id IS NULL
