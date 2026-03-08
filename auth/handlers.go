@@ -5,9 +5,14 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
+	"net/mail"
 	"forum/database"
 )
+
+func isValidEmail(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
+}
 
 // RegisterHandler handles user registration.
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +24,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	username := strings.ToLower(strings.TrimSpace(r.FormValue("username")))
 	password := r.FormValue("password")
 
-	if email == "" || username == "" || password == "" {
+	if !isValidEmail(email string) || username == "" || password == "" {
 		http.Error(w, "All fields are required", http.StatusBadRequest)
 		return
 	}
