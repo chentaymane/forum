@@ -25,26 +25,38 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var query string
 	var targetID string
+	var checkQuery, deleteQuery, insertQuery string
 
 	if postID != "" {
-		deletePrevReaction(userID, postID, "")
-		query = "INSERT INTO likes_dislikes (user_id, post_id, type) VALUES (?, ?, ?)"
 		targetID = postID
+		checkQuery = "SELECT COUNT(*) FROM likes_dislikes WHERE user_id = ? AND post_id = ? AND type = ?"
+		deleteQuery = "DELETE FROM likes_dislikes WHERE user_id = ? AND post_id = ?"
+		insertQuery = "INSERT INTO likes_dislikes (user_id, post_id, type) VALUES (?, ?, ?)"
 	} else {
-		deletePrevReaction(userID, "", commentID)
-		query = "INSERT INTO likes_dislikes (user_id, comment_id, type) VALUES (?, ?, ?)"
 		targetID = commentID
+		checkQuery = "SELECT COUNT(*) FROM likes_dislikes WHERE user_id = ? AND comment_id = ? AND type = ?"
+		deleteQuery = "DELETE FROM likes_dislikes WHERE user_id = ? AND comment_id = ?"
+		insertQuery = "INSERT INTO likes_dislikes (user_id, comment_id, type) VALUES (?, ?, ?)"
 	}
 
-	_, err = database.DB.Exec(query, userID, targetID, likeType)
-	if err != nil {
-		http.Error(w, "Failed to process like/dislike", http.StatusInternalServerError)
-		return
+	// Check if the user already reacted with the SAME type → toggle off
+	var existing int
+	database.DB.QueryRow(checkQuery, userID, targetID, likeType).Scan(&existing)
+
+	// Always remove the previous reaction first
+	database.DB.Exec(deleteQuery, userID, targetID)
+
+	// Only insert if it was NOT the same reaction (toggle off if same)
+	if existing == 0 {
+		_, err = database.DB.Exec(insertQuery, userID, targetID, likeType)
+		if err != nil {
+			http.Error(w, "Failed to process like/dislike", http.StatusInternalServerError)
+			return
+		}
 	}
 
-	// Count updated likes/dislikes
+	// Count updated totals
 	var likes, dislikes int
 	if postID != "" {
 		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE post_id = ? AND type = 1", targetID).Scan(&likes)
