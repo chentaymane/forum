@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"forum/auth"
 	"forum/database"
@@ -133,6 +134,8 @@ func GetPosts(categoryID int, userID int, likedByUserID int, commentedByUserID i
 		if err := rows.Scan(&p.ID, &p.UserID, &p.Username, &p.Content, &p.CreatedAt); err != nil {
 			return nil, err
 		}
+		p.CreatedAt = formatDate(p.CreatedAt) // ← add this line
+
 		p.Categories, _ = getPostCategories(p.ID)
 		p.Likes, p.Dislikes, _ = GetLikesCount(p.ID, 0)
 		p.Comments, _ = GetCommentsByPost(p.ID)
@@ -140,6 +143,22 @@ func GetPosts(categoryID int, userID int, likedByUserID int, commentedByUserID i
 	}
 
 	return posts, nil
+}
+
+// Add this helper function
+func formatDate(raw string) string {
+	// Try common SQLite datetime formats
+	formats := []string{
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05",
+	}
+	for _, layout := range formats {
+		if t, err := time.Parse(layout, raw); err == nil {
+			return t.Format("2 Jan 2006 · 15:04")
+		}
+	}
+	return raw // fallback: return as-is if parsing fails
 }
 
 // GetPostsCount returns the total number of posts matching the filters.
