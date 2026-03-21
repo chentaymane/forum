@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"forum/auth"
-	"forum/database"
+	database "forum/db"
 	"forum/forum"
 	"forum/handlers"
 	"forum/middleware"

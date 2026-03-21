@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"forum/auth"
-	"forum/database"
+	database "forum/db"
 	"forum/forum"
 )
 

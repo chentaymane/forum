@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"forum/database"
+	database "forum/db"
 )
 
 // RegisterHandler handles user registration.
@@ -65,7 +65,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	//  Set cookie
 	SetSessionCookie(w, sessionID)
-	
+
 	// Redirect to home page
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"forum/auth"
-	"forum/database"
+	database "forum/db"
 )
 
 // Comment represents a post comment.

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"forum/database"
+	database "forum/db"
 
 	"github.com/gofrs/uuid"
 )

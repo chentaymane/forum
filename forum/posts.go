@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"forum/auth"
-	"forum/database"
+	database "forum/db"
 )
 
 // Post represents a forum post.
@@ -204,6 +204,7 @@ func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUse
 	err := database.DB.QueryRow(query.String(), args...).Scan(&count)
 	return count, err
 }
+
 func getPostCategories(postID int) ([]string, error) {
 	rows, err := database.DB.Query(`
 		SELECT c.name FROM categories c

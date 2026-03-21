@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"forum/auth"
-	"forum/database"
+	database "forum/db"
 )
 
 // LikeDislikeHandler handles likes and dislikes for posts and comments.
