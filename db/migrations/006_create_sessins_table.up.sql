@@ -1,5 +1,0 @@
-CREATE TABLE IF NOT EXISTS sessions (
-		id TEXT PRIMARY KEY, -- UUID
-		user_id INTEGER NOT NULL,
-		expires_at DATETIME NOT NULL,
-		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE	);
