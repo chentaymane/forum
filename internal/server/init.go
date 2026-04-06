@@ -7,8 +7,13 @@ import (
 const port = ":8080"
 
 func Init() error {
-	router := http.NewServeMux()
-	err := http.ListenAndServe(port, router)
+	makeLimiter()
+	parseHTML()
+
+	mux := http.NewServeMux()
+	mux.Handle("/", Middleware(http.HandlerFunc(HelloWorld)))
+
+	err := http.ListenAndServe(port, mux)
 	if err != nil {
 		return err
 	}
