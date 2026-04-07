@@ -1,8 +1,8 @@
-version: "4"
+version: "2"
 sql:
-  - engine: "db/sqlite"
-    queries: "db/query.sql"
-    schema: "db/schema.sql"
+  - engine: "sqlite"
+    queries: "internal/db/query.sql"
+    schema: "internal/db/schema.sql"
     gen:
       go:
         package: "db"

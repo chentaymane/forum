@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&display=swap');
+
+
+
+body {
+  display: flex;
+  min-height: 100vh;
+
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0;
+  background-color: #FCF9EA;
+}
+
+.title {
+  font-family: inherit;
+  font-weight: semi-bold;
+}
+
+#formTitle {
+  font-family: inherit;
+  font-size: clamp(0.5rem, 1.5rem, 4rem);
+
+  font-weight: semi-bold;
+}
+
+
+#header {
+  height: clamp(2rem, 3rem, 6rem);
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  font-size: clamp(0.5rem, 1.5rem, 4rem);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  justify-content: space-between;
+  background-color: #BADFDB;
+}
+
+
+#formDiv {
+  background-color: #BADFDB;
+  display: flex;
+  max-width: 100%;
+  padding: 1rem 1rem;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  border-radius: 10px;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+
+
+input {
+  height: clamp(1rem, 5vh, 10rem);
+  width: clamp(10rem, 80vw, 20rem);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(0.5rem, 1.5rem, 4rem);
+  border-radius: 10px;
+  border: 1px solid;
+  border-color: #FFBDBD;
+
+}
+
+
+#buttons {
+
+  display: flex;
+  gap: 0.75rem;
+
+  flex-direction: row;
+}
+
+.submitButton {
+  height: clamp(2rem, 5vh, 10rem);
+  border-radius: 10px;
+  font-size: clamp(0.5rem, 3vh, 4rem);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  border-color: #FFBDBD;
+  width: clamp(10rem, 36vh, 30rem);
+  background-color: #FCF9EA;
+}
+
+a.button {
+  height: clamp(0.5rem, 1rem, 4rem);
+  width: clamp(1rem, 3rem, 4rem);
+  padding: 4px 8px;
+  font-size: clamp(0.3rem, 1rem, 3rem);
+  border: 2px solid;
+  display: flex;
+  border-color: #FFBDBD;
+  border-radius: 6px;
+  color: black;
+  align-items: center;
+  justify-content: center;
+  background-color: #FCF9EA;
+  text-decoration: none;
+}

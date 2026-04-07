@@ -1,7 +1,13 @@
---name: CreateUser :one
+-- name: CreateUser :exec
 INSERT INTO users ( id, username, password)
-VALUES ( $1, $2, $3);
---name: GetUser :one
+VALUES ( ?, ?, ?);
+-- name: GetUser :one
 SELECT * FROM users 
-WHERE username = $1 LIMIT $1;
-
+WHERE username = ?;
+-- name: CreateSession :one
+INSERT INTO sessions (id, user_id)
+VALUES (?, ?)
+RETURNING id;
+-- name: GetSession :one
+SELECT * FROM sessions
+WHERE id = ?;
