@@ -17,6 +17,6 @@ type User struct {
 	ID        []byte
 	Email     string
 	Username  string
-	Password  string
+	Password  []byte
 	CreatedAt sql.NullTime
 }

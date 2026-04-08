@@ -28,18 +28,24 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) ([
 }
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users ( id, username, password)
-VALUES ( ?, ?, ?)
+INSERT INTO users ( id, username, email, password)
+VALUES ( ?, ?, ?, ?)
 `
 
 type CreateUserParams struct {
 	ID       []byte
 	Username string
-	Password string
+	Email    string
+	Password []byte
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.ExecContext(ctx, createUser, arg.ID, arg.Username, arg.Password)
+	_, err := q.db.ExecContext(ctx, createUser,
+		arg.ID,
+		arg.Username,
+		arg.Email,
+		arg.Password,
+	)
 	return err
 }
 

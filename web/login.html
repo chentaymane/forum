@@ -3,13 +3,23 @@
 <html>
 
 <head>
-  <title>Login Go Forum</title>
-  <link rel="stylesheet" , href="/style.css">
+  <title>Register In Go Forum</title>
+  <link rel="stylesheet" href="/style.css">
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
 <body>
-  <h1>Test </h1>
+  <form action="/login" method="Post">
+    <div id="formDiv">
+      <span id="formTitle">Log in your account</span>
+      <label for="email">Email: </label>
+      <input type="email" name="email" placeholder="Enter your email address" required>
+      <label for="password">Password: </label>
+      <input type="password" name="password" placeholder="Enter strong password" required>
+      <button type="submit" class="submitButton">login</button>
+    </div>
+  </form>
 </body>
 
 </html>

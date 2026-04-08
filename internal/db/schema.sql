@@ -1,11 +1,11 @@
-CREATE TABLE  users (
+CREATE TABLE IF NOT EXISTS users (
     id BLOB PRIMARY KEY NOT NULL,
     email TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
+    password BLOB NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-CREATE TABLE sessions (
+CREATE TABLE  IF NOT EXISTS sessions (
   id BLOB PRIMARY KEY,
   user_id BLOB NOT NULL, 
   FOREIGN KEY(user_id) REFERENCES users(id)

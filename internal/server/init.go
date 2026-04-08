@@ -1,12 +1,33 @@
 package server
 
 import (
+	"context"
+	"database/sql"
+	_ "embed"
 	"net/http"
+
+	"forum-backend/internal/db"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const port = ":8080"
 
+var dataBase *db.Queries
+
+//go:embed schema.sql
+var ddl string
+
 func Init() error {
+	dataFile, err := sql.Open("sqlite3", "data.db")
+	if err != nil {
+		panic(err)
+	}
+	_, err = dataFile.ExecContext(context.Background(), ddl)
+	if err != nil {
+		panic(err)
+	}
+	dataBase = db.New(dataFile)
 	makeLimiter()
 	parseHTML()
 
@@ -15,7 +36,7 @@ func Init() error {
 	mux.Handle("/register", Middleware(http.HandlerFunc(register)))
 	mux.Handle("/login", Middleware(http.HandlerFunc(login)))
 	mux.Handle("/style.css", static())
-	err := http.ListenAndServe(port, mux)
+	err = http.ListenAndServe(port, mux)
 	if err != nil {
 		return err
 	}

@@ -20,22 +20,23 @@ body {
 
 #formTitle {
   font-family: inherit;
-  font-size: clamp(0.5rem, 1.5rem, 4rem);
-
+  text-align: center;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  margin-bottom: 0.5rem;
   font-weight: semi-bold;
 }
 
 
 #header {
-  height: clamp(2rem, 3rem, 6rem);
-  width: 100vw;
+  height: clamp(3rem, 6vh, 8rem);
+  width: 100%;
   position: fixed;
   top: 0;
   font-size: clamp(0.5rem, 1.5rem, 4rem);
   font-family: 'Plus Jakarta Sans', sans-serif;
   display: flex;
   align-items: center;
-  padding: 0 1rem;
+  padding: 0 2rem;
   justify-content: space-between;
   background-color: #BADFDB;
 }
@@ -43,48 +44,60 @@ body {
 
 #formDiv {
   background-color: #BADFDB;
+
+  width: clamp(3rem, 60vw, 30rem);
   display: flex;
   max-width: 100%;
   padding: 1rem 1rem;
-  gap: 1rem;
-  align-items: center;
+
   justify-content: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  border-radius: 10px;
-  flex-wrap: wrap;
+  border-radius: 6px;
+
   flex-direction: column;
 }
 
 
+label {
+  margin-top: 0.4rem;
+
+  font-size: clamp(1rem, 1.2vw, 8rem);
+  margin-bottom: 0.2rem;
+}
 
 input {
   height: clamp(1rem, 5vh, 10rem);
-  width: clamp(10rem, 80vw, 20rem);
+  width: 100%;
+
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(0.5rem, 1.5rem, 4rem);
-  border-radius: 10px;
+  font-size: clamp(1rem, 1.2vw, 6rem);
+  border-radius: 6px;
   border: 1px solid;
   border-color: #FFBDBD;
-
+  margin-bottom: 0.4rem;
 }
 
 
 #buttons {
-
   display: flex;
   gap: 0.75rem;
-
+  margin-right: 1rem;
   flex-direction: row;
 }
 
 .submitButton {
-  height: clamp(2rem, 5vh, 10rem);
-  border-radius: 10px;
-  font-size: clamp(0.5rem, 3vh, 4rem);
+  height: clamp(2rem, 6vh, 10rem);
+  border-radius: 8px;
+  color: white;
+  width: 100%;
+  align-self: center;
+  border: 2px solid;
+
+  font-size: clamp(1rem, 1.4vw, 8rem);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  border-color: #FFBDBD;
-  width: clamp(10rem, 36vh, 30rem);
-  background-color: #FCF9EA;
+  border-color: #FCF9EA;
+
+  background-color: #FFA4A4;
 }
 
 a.button {
