@@ -18,11 +18,13 @@
 
 {{ block "header" . }}
 <div id="header">
-  <span class="title">Go Forum</span>
-  {{ if . }}
 
-  {{ else }}
+  <span class="title">Go Forum</span>
   <div id="buttons">
+
+    {{ if .User }}
+    <span>Hello {{ .User.Username}}!</span>
+    {{ else }}
     <a href="/login" class="button">login</a>
     <a href="/register" class="button">register</a>
   </div>

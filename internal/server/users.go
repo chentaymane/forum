@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,9 +9,6 @@ import (
 	"strings"
 
 	"forum-backend/internal/db"
-
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type data struct {
@@ -20,21 +16,22 @@ type data struct {
 	Error error
 }
 
-func registerUser(user string, email string, password string) error {
-	id := uuid.New()
-	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	err := dataBase.CreateUser(context.Background(), db.CreateUserParams{
-		ID:       []byte(id.String()),
-		Username: user,
-
-		Email:    email,
-		Password: hash,
-	})
-	return err
-}
-
 func HelloWorld(w http.ResponseWriter, r *http.Request) {
-	parsedPages.ExecuteTemplate(w, "hello", nil)
+	if r.URL.Path != "/" {
+		http.Error(w, "404", 404)
+		return
+	}
+	var d data
+	ctx := r.Context()
+	us := ctx.Value("user")
+	if us != nil {
+		user := us.(*db.GetSessionRow)
+		d.User = &db.User{
+			Username: strings.Title(user.Username),
+		}
+	}
+
+	parsedPages.ExecuteTemplate(w, "hello", d)
 }
 
 func getValues(values url.Values, reg bool) ([]string, error) {
@@ -47,14 +44,17 @@ func getValues(values url.Values, reg bool) ([]string, error) {
 	if email == "" {
 		return nil, fmt.Errorf("empty")
 	}
+
 	_, err := mail.ParseAddress(email)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email")
 	}
+
 	password := values.Get("password")
 	if password == "" {
 		return nil, fmt.Errorf("empty")
 	}
+
 	return []string{username, email, password}, nil
 }
 
@@ -94,7 +94,20 @@ func login(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			w.Write([]byte("error"))
 		}
-		str := strings.Join(values, " ")
-		w.Write([]byte(str))
+		id, err := LogInUser(values[1], values[2])
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "401", http.StatusNonAuthoritativeInfo)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_id",
+			Value:    id,
+			Secure:   true,
+			HttpOnly: true,
+			Path:     "/",
+			SameSite: http.SameSiteDefaultMode,
+		})
+		w.Write([]byte(id))
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"log"
 	"net/http"
 
 	"forum-backend/internal/db"
@@ -27,6 +28,7 @@ func Init() error {
 	if err != nil {
 		panic(err)
 	}
+	log.Println(ddl)
 	dataBase = db.New(dataFile)
 	makeLimiter()
 	parseHTML()

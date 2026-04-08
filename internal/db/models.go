@@ -8,9 +8,24 @@ import (
 	"database/sql"
 )
 
+type Image struct {
+	ID        []byte
+	CreatedAt sql.NullInt64
+	PostID    []byte
+}
+
+type Post struct {
+	ID        []byte
+	Title     string
+	Content   string
+	CreatedAt sql.NullInt64
+	UserID    []byte
+}
+
 type Session struct {
-	ID     []byte
-	UserID []byte
+	ID        []byte
+	CreatedAt sql.NullInt64
+	UserID    []byte
 }
 
 type User struct {
@@ -18,5 +33,5 @@ type User struct {
 	Email     string
 	Username  string
 	Password  []byte
-	CreatedAt sql.NullTime
+	CreatedAt sql.NullInt64
 }

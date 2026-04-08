@@ -7,36 +7,66 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
+const createPost = `-- name: CreatePost :one
+INSERT INTO posts (id, title, content, user_id, created_at) 
+VALUES (?, ?, ?, ?, ? )
+RETURNING title
+`
+
+type CreatePostParams struct {
+	ID        []byte
+	Title     string
+	Content   string
+	UserID    []byte
+	CreatedAt sql.NullInt64
+}
+
+func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, createPost,
+		arg.ID,
+		arg.Title,
+		arg.Content,
+		arg.UserID,
+		arg.CreatedAt,
+	)
+	var title string
+	err := row.Scan(&title)
+	return title, err
+}
+
 const createSession = `-- name: CreateSession :one
-INSERT INTO sessions (id, user_id)
-VALUES (?, ?)
+INSERT INTO sessions (id, user_id, created_at)
+VALUES (?, ?, ? )
 RETURNING id
 `
 
 type CreateSessionParams struct {
-	ID     []byte
-	UserID []byte
+	ID        []byte
+	UserID    []byte
+	CreatedAt sql.NullInt64
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) ([]byte, error) {
-	row := q.db.QueryRowContext(ctx, createSession, arg.ID, arg.UserID)
+	row := q.db.QueryRowContext(ctx, createSession, arg.ID, arg.UserID, arg.CreatedAt)
 	var id []byte
 	err := row.Scan(&id)
 	return id, err
 }
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users ( id, username, email, password)
-VALUES ( ?, ?, ?, ?)
+INSERT INTO users ( id, username, email, password, created_at)
+VALUES ( ?, ?, ?, ?, ? )
 `
 
 type CreateUserParams struct {
-	ID       []byte
-	Username string
-	Email    string
-	Password []byte
+	ID        []byte
+	Username  string
+	Email     string
+	Password  []byte
+	CreatedAt sql.NullInt64
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
@@ -45,29 +75,90 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 		arg.Username,
 		arg.Email,
 		arg.Password,
+		arg.CreatedAt,
 	)
 	return err
 }
 
-const getSession = `-- name: GetSession :one
-SELECT id, user_id FROM sessions
+const deleteUserSession = `-- name: DeleteUserSession :exec
+DELETE FROM sessions 
 WHERE id = ?
 `
 
-func (q *Queries) GetSession(ctx context.Context, id []byte) (Session, error) {
+func (q *Queries) DeleteUserSession(ctx context.Context, id []byte) error {
+	_, err := q.db.ExecContext(ctx, deleteUserSession, id)
+	return err
+}
+
+const getPosts = `-- name: GetPosts :many
+SELECT id, title, content, created_at, user_id FROM posts  
+WHERE created_at < ?
+ORDER BY craeted_at DESC
+LIMIT 20
+`
+
+func (q *Queries) GetPosts(ctx context.Context, createdAt sql.NullInt64) ([]Post, error) {
+	rows, err := q.db.QueryContext(ctx, getPosts, createdAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Post
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Content,
+			&i.CreatedAt,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSession = `-- name: GetSession :one
+SELECT sessions.id, users.id as user_id , users.email, users.username
+FROM sessions
+JOIN users ON sessions.user_id = users.id
+WHERE sessions.id = ?
+`
+
+type GetSessionRow struct {
+	ID       []byte
+	UserID   []byte
+	Email    string
+	Username string
+}
+
+func (q *Queries) GetSession(ctx context.Context, id []byte) (GetSessionRow, error) {
 	row := q.db.QueryRowContext(ctx, getSession, id)
-	var i Session
-	err := row.Scan(&i.ID, &i.UserID)
+	var i GetSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Email,
+		&i.Username,
+	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
 SELECT id, email, username, password, created_at FROM users 
-WHERE username = ?
+WHERE email = ?
 `
 
-func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser, username)
+func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUser, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -77,4 +168,20 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const saveImage = `-- name: SaveImage :exec
+INSERT INTO images (id, post_id, created_at)
+VALUES (?, ?, ?)
+`
+
+type SaveImageParams struct {
+	ID        []byte
+	PostID    []byte
+	CreatedAt sql.NullInt64
+}
+
+func (q *Queries) SaveImage(ctx context.Context, arg SaveImageParams) error {
+	_, err := q.db.ExecContext(ctx, saveImage, arg.ID, arg.PostID, arg.CreatedAt)
+	return err
 }
