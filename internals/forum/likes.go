@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"forum/auth"
-	"forum/database"
+	"forum/internals/auth"
+	"forum/internals/database"
 )
 
 // LikeDislikeHandler handles likes and dislikes for posts and comments.

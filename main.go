@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"forum/auth"
-	"forum/database"
-	"forum/forum"
-	"forum/handlers"
-	"forum/middleware"
+	"forum/internals/auth"
+	"forum/internals/database"
+	"forum/internals/forum"
+	"forum/internals/handlers"
+	"forum/internals/middleware"
 )
 
 func main() {
@@ -21,28 +21,29 @@ func main() {
 	// Create a new ServeMux
 
 	// Static Files
-	fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(http.Dir("web/static"))
 	http.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
 	//  Public Page Handlers
-	http.HandleFunc("GET /", handlers.HomeHandler)
-	http.HandleFunc("GET /posts/{page}", handlers.HomeHandler)
-	http.HandleFunc("GET /login", handlers.LoginPageHandler)
-	http.HandleFunc("GET /register", handlers.RegisterPageHandler)
+	http.HandleFunc("/", middleware.Method("GET", handlers.HomeHandler))
+	http.HandleFunc("/posts/{page}", middleware.Method("GET", handlers.HomeHandler))
+	http.HandleFunc("/login", middleware.Method("GET", middleware.Guest(handlers.LoginPageHandler)))
+	http.HandleFunc("/register", middleware.Method("GET", middleware.Guest(handlers.RegisterPageHandler)))
 
 	//  Protected Page Handlers
-	http.HandleFunc("GET /create-post", middleware.AuthMiddleware(handlers.CreatePostPageHandler))
+	http.HandleFunc("/create-post", middleware.Method("GET", middleware.AuthMiddleware(handlers.CreatePostPageHandler)))
 
 	//  Auth API (always public)
-	http.HandleFunc("POST /auth/register", auth.RegisterHandler)
-	http.HandleFunc("POST /auth/login", auth.LoginHandler)
-	http.HandleFunc("POST /auth/logout", auth.LogoutHandler)
+	http.HandleFunc("/auth/register", middleware.Method("POST", middleware.Guest(auth.RegisterHandler)))
+	http.HandleFunc("/auth/login", middleware.Method("POST", middleware.Guest(auth.LoginHandler)))
+	http.HandleFunc("/auth/logout", middleware.Method("POST", middleware.AuthMiddleware(auth.LogoutHandler)))
 
 	//  Protected API Handlers
-	http.HandleFunc("POST /api/posts", middleware.AuthMiddleware(forum.CreatePostHandler))
-	http.HandleFunc("POST /api/posts/delete", middleware.AuthMiddleware(forum.DeletePostHandler))
-	http.HandleFunc("POST /api/comments", middleware.AuthMiddleware(forum.CreateCommentHandler))
-	http.HandleFunc("POST /api/likes", middleware.AuthMiddleware(forum.LikeDislikeHandler))
+	http.HandleFunc("/api/posts", middleware.Method("GET", middleware.AuthMiddleware(forum.CreatePostHandler)))
+
+	http.HandleFunc("/api/posts/delete", middleware.Method("POST", middleware.AuthMiddleware(forum.DeletePostHandler)))
+	http.HandleFunc("/api/comments", middleware.Method("POST", middleware.AuthMiddleware(forum.CreateCommentHandler)))
+	http.HandleFunc("/api/likes", middleware.Method("POST", middleware.AuthMiddleware(forum.LikeDislikeHandler)))
 
 	fmt.Println("Server started on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

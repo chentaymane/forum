@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"forum/auth"
-	"forum/database"
+	"forum/internals/auth"
+	"forum/internals/database"
 )
 
 // Post represents a forum post.
@@ -15,6 +15,7 @@ type Post struct {
 	ID         int
 	UserID     int
 	Username   string
+	Title      string
 	Content    string
 	CreatedAt  string
 	Categories []string

@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"forum/auth"
-	"forum/database"
-	"forum/forum"
+	"forum/internals/auth"
+	"forum/internals/database"
+	"forum/internals/forum"
 )
 
 var templateCache = make(map[string]*template.Template)
@@ -20,8 +20,8 @@ func getTemplate(name string) (*template.Template, error) {
 
 	// For each page, we parse the layout and the specific template
 	tmpl, err := template.ParseFiles(
-		filepath.Join("templates", "layout.html"),
-		filepath.Join("templates", name+".html"),
+		filepath.Join("web", "templates", "layout.html"),
+		filepath.Join("web", "templates", name+".html"),
 	)
 	if err != nil {
 		return nil, err

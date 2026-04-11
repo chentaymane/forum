@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"forum/database"
+	"forum/internals/database"
 
 	"github.com/gofrs/uuid"
 )
@@ -78,4 +78,9 @@ func GetUserFromRequest(r *http.Request) (int, error) {
 		return 0, err
 	}
 	return GetUserIDFromSession(cookie.Value)
+}
+
+func LoggedIn(r *http.Request) bool {
+	id, err := GetUserFromRequest(r)
+	return err == nil && id > 0
 }
