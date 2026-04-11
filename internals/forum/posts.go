@@ -8,6 +8,7 @@ import (
 
 	"forum/internals/auth"
 	"forum/internals/database"
+	"forum/internals/errors"
 )
 
 // Post represents a forum post.
@@ -28,7 +29,7 @@ type Post struct {
 func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -36,13 +37,13 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	categoryIDsStr := r.PostForm["categories"] // Expected as multiples
 
 	if content == "" {
-		http.Error(w, "Content is required", http.StatusBadRequest)
+		errors.RenderError(w, "Content is required", http.StatusBadRequest)
 		return
 	}
 
 	tx, err := database.DB.Begin()
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		errors.RenderError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 	defer tx.Rollback()
@@ -50,7 +51,7 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	// Insert post
 	res, err := tx.Exec("INSERT INTO posts (user_id, content) VALUES (?, ?)", userID, content)
 	if err != nil {
-		http.Error(w, "Failed to create post", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to create post", http.StatusInternalServerError)
 		return
 	}
 
@@ -60,13 +61,13 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	for _, catID := range categoryIDsStr {
 		_, err = tx.Exec("INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)", postID, catID)
 		if err != nil {
-			http.Error(w, "Failed to associate categories", http.StatusInternalServerError)
+			errors.RenderError(w, "Failed to associate categories", http.StatusInternalServerError)
 			return
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to commit transaction", http.StatusInternalServerError)
 		return
 	}
 
@@ -231,21 +232,21 @@ func getPostCategories(postID int) ([]string, error) {
 func DeletePostHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	postIDStr := r.FormValue("post_id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil {
-		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		errors.RenderError(w, "Invalid post ID", http.StatusBadRequest)
 		return
 	}
 
 	// Verify ownership and delete in a transaction
 	tx, err := database.DB.Begin()
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		errors.RenderError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 	defer tx.Rollback()
@@ -254,12 +255,12 @@ func DeletePostHandler(w http.ResponseWriter, r *http.Request) {
 	var ownerID int
 	err = tx.QueryRow("SELECT user_id FROM posts WHERE id = ?", postID).Scan(&ownerID)
 	if err != nil {
-		http.Error(w, "Post not found", http.StatusNotFound)
+		errors.RenderError(w, "Post not found", http.StatusNotFound)
 		return
 	}
 
 	if ownerID != userID {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		errors.RenderError(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -268,30 +269,30 @@ func DeletePostHandler(w http.ResponseWriter, r *http.Request) {
 	// Actually, let's just delete the post. If FKs are not cascading, we should delete them.
 	_, err = tx.Exec("DELETE FROM comments WHERE post_id = ?", postID)
 	if err != nil {
-		http.Error(w, "Failed to delete comments", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to delete comments", http.StatusInternalServerError)
 		return
 	}
 
 	_, err = tx.Exec("DELETE FROM likes_dislikes WHERE post_id = ?", postID)
 	if err != nil {
-		http.Error(w, "Failed to delete reactions", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to delete reactions", http.StatusInternalServerError)
 		return
 	}
 
 	_, err = tx.Exec("DELETE FROM post_categories WHERE post_id = ?", postID)
 	if err != nil {
-		http.Error(w, "Failed to delete post categories", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to delete post categories", http.StatusInternalServerError)
 		return
 	}
 
 	_, err = tx.Exec("DELETE FROM posts WHERE id = ?", postID)
 	if err != nil {
-		http.Error(w, "Failed to delete post", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to delete post", http.StatusInternalServerError)
 		return
 	}
 
 	if err = tx.Commit(); err != nil {
-		http.Error(w, "Failed to commit deletion", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to commit deletion", http.StatusInternalServerError)
 		return
 	}
 

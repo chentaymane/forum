@@ -5,13 +5,14 @@ import (
 
 	"forum/internals/auth"
 	"forum/internals/database"
+	"forum/internals/errors"
 )
 
 // LikeDislikeHandler handles likes and dislikes for posts and comments.
 func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -20,7 +21,7 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 	likeType := r.FormValue("type")
 
 	if (postID == "" && commentID == "") || (likeType != "1" && likeType != "-1") {
-		http.Error(w, "Invalid parameters", http.StatusBadRequest)
+		errors.RenderError(w, "Invalid parameters", http.StatusBadRequest)
 		return
 	}
 
@@ -50,7 +51,7 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 	if existing == 0 {
 		_, err = database.DB.Exec(insertQuery, userID, targetID, likeType)
 		if err != nil {
-			http.Error(w, "Failed to process like/dislike", http.StatusInternalServerError)
+			errors.RenderError(w, "Failed to process like/dislike", http.StatusInternalServerError)
 			return
 		}
 	}

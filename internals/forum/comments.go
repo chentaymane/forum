@@ -5,6 +5,7 @@ import (
 
 	"forum/internals/auth"
 	"forum/internals/database"
+	"forum/internals/errors"
 )
 
 // Comment represents a post comment.
@@ -21,7 +22,7 @@ type Comment struct {
 func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -29,7 +30,7 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 
 	if postID == "" || content == "" {
-		http.Error(w, "Post ID and content are required", http.StatusBadRequest)
+		errors.RenderError(w, "Post ID and content are required", http.StatusBadRequest)
 		return
 	}
 
@@ -38,7 +39,7 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		postID, userID, content,
 	)
 	if err != nil {
-		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
+		errors.RenderError(w, "Failed to create comment", http.StatusInternalServerError)
 		return
 	}
 

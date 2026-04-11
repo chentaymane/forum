@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"forum/internals/auth"
+	"forum/internals/errors"
 	"net/http"
 )
 
@@ -37,7 +38,7 @@ func Method(method string, next http.HandlerFunc) http.HandlerFunc {
 
 		if r.Method != method {
 			// TODO RENDER ERROR
-			http.Error(w, http.StatusText(405), 405)
+			errors.RenderError(w, http.StatusText(405), 405)
 			return
 		}
 		next(w, r)

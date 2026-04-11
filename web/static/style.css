@@ -565,3 +565,46 @@ footer {
         padding: 0.75rem 1rem;
     }
 }
+
+.error-page {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-md);
+    max-width: 480px;
+    margin: 4rem auto;
+}
+
+.error-page h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 5rem;
+    font-weight: 400;
+    margin: 0 0 0.5rem 0;
+    color: var(--primary);
+    letter-spacing: -0.03em;
+}
+
+.error-page p {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+.error-page a {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    padding: 0.65rem 1.5rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background 0.18s, transform 0.12s;
+}
+
+.error-page a:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}

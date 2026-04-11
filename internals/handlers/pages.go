@@ -8,6 +8,7 @@ import (
 
 	"forum/internals/auth"
 	"forum/internals/database"
+	"forum/internals/errors"
 	"forum/internals/forum"
 )
 
@@ -105,13 +106,13 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 	posts, err := forum.GetPosts(catID, filterUserID, likedByUserID, commentedByUserID, pageSize, offset)
 	if err != nil {
-		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
+		errors.RenderError(w, "Error fetching posts", http.StatusInternalServerError)
 		return
 	}
 
 	totalPosts, err := forum.GetPostsCount(catID, filterUserID, likedByUserID, commentedByUserID)
 	if err != nil {
-		http.Error(w, "Error counting posts", http.StatusInternalServerError)
+		errors.RenderError(w, "Error counting posts", http.StatusInternalServerError)
 		return
 	}
 
@@ -162,13 +163,13 @@ func getCategories() ([]Category, error) {
 func renderTemplate(w http.ResponseWriter, tmplName string, data interface{}) {
 	tmpl, err := getTemplate(tmplName)
 	if err != nil {
-		http.Error(w, "Error loading template: "+err.Error(), http.StatusInternalServerError)
+		errors.RenderError(w, "Error loading template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = tmpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
-		http.Error(w, "Error executing template: "+err.Error(), http.StatusInternalServerError)
+		errors.RenderError(w, "Error executing template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
