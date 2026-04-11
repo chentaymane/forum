@@ -51,14 +51,22 @@
 
             <div class="post-actions">
                 {{if $.User}}
-                <button id="like-btn-{{.ID}}" class="action-btn like-btn" onclick="sendLike('{{.ID}}', '1', this)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
-                    <span id="likes-{{.ID}}">{{.Likes}}</span>
-                </button>
-                <button id="dislike-btn-{{.ID}}" class="action-btn dislike-btn" onclick="sendLike('{{.ID}}', '-1', this)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>
-                    <span id="dislikes-{{.ID}}">{{.Dislikes}}</span>
-                </button>
+                <form action="/api/likes" method="POST" class="inline-form">
+                    <input type="hidden" name="post_id" value="{{.ID}}">
+                    <input type="hidden" name="type" value="1">
+                    <button type="submit" class="action-btn like-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+                        <span>{{.Likes}}</span>
+                    </button>
+                </form>
+                <form action="/api/likes" method="POST" class="inline-form">
+                    <input type="hidden" name="post_id" value="{{.ID}}">
+                    <input type="hidden" name="type" value="-1">
+                    <button type="submit" class="action-btn dislike-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>
+                        <span>{{.Dislikes}}</span>
+                    </button>
+                </form>
                 {{else}}
                 <span class="action-stat">
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
@@ -69,29 +77,21 @@
                     {{.Dislikes}}
                 </span>
                 {{end}}
-
-                <button class="action-btn comment-toggle-btn" onclick="toggleComments('{{.ID}}')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <span id="comment-count-{{.ID}}">{{len .Comments}}</span>
-                </button>
             </div>
 
-            <div class="comments-section" id="comments-section-{{.ID}}" style="display:none;">
+            <div class="comments-section">
                 {{if .Comments}}
                 <h4>Comments</h4>
+                {{range .Comments}}
+                <div class="comment">
+                    <span class="comment-author">{{.Username}}:</span>
+                    <span class="comment-content">{{.Content}}</span>
+                </div>
+                {{end}}
                 {{end}}
 
-                <div class="comments-list" id="comments-{{.ID}}">
-                    {{range .Comments}}
-                    <div class="comment">
-                        <span class="comment-author">{{.Username}}:</span>
-                        <span class="comment-content">{{.Content}}</span>
-                    </div>
-                    {{end}}
-                </div>
-
                 {{if $.User}}
-                <form class="comment-form" onsubmit="sendComment(event, '{{.ID}}')">
+                <form action="/api/comments" method="POST" class="comment-form">
                     <input type="hidden" name="post_id" value="{{.ID}}">
                     <input type="text" name="content" placeholder="Add a comment..." required>
                     <button type="submit">Send</button>
@@ -117,66 +117,4 @@
         </nav>
     </section>
 </div>
-
-<script>
-const userReactions = {};
-
-function sendLike(postID, type) {
-    const data = new FormData();
-    data.append("post_id", postID);
-    data.append("type", type);
-
-    fetch("/api/likes", { method: "POST", body: data })
-        .then(r => r.json())
-        .then(d => {
-            document.getElementById("likes-" + postID).textContent = d.likes;
-            document.getElementById("dislikes-" + postID).textContent = d.dislikes;
-
-            const prev       = userReactions[postID];
-            const likeBtn    = document.getElementById("like-btn-" + postID);
-            const dislikeBtn = document.getElementById("dislike-btn-" + postID);
-
-            userReactions[postID] = prev === type ? null : type;
-
-            likeBtn.classList.toggle("active",    userReactions[postID] === "1");
-            dislikeBtn.classList.toggle("active", userReactions[postID] === "-1");
-        });
-}
-
-function toggleComments(postID) {
-    const section = document.getElementById("comments-section-" + postID);
-    const btn     = document.querySelector(`[onclick="toggleComments('${postID}')"]`);
-    const isOpen  = section.style.display !== "none";
-
-    section.style.display = isOpen ? "none" : "block";
-    btn.classList.toggle("active", !isOpen);
-}
-
-function sendComment(event, postID) {
-    event.preventDefault();
-
-    const form    = event.target;
-    const input   = form.querySelector("input[name='content']");
-    const content = input.value.trim();
-    if (!content) return;
-
-    const data = new FormData();
-    data.append("post_id", postID);
-    data.append("content", content);
-
-    fetch("/api/comments", { method: "POST", body: data })
-        .then(r => r.json())
-        .then(d => {
-            const div = document.createElement("div");
-            div.className = "comment";
-            div.innerHTML = `<span class="comment-author">${d.username}:</span>
-                             <span class="comment-content">${d.content}</span>`;
-            document.getElementById("comments-" + postID).appendChild(div);
-            input.value = "";
-
-            const countEl = document.getElementById("comment-count-" + postID);
-            countEl.textContent = parseInt(countEl.textContent) + 1;
-        });
-}
-</script>
 {{end}}

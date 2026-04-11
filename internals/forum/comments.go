@@ -1,7 +1,6 @@
 package forum
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"forum/internals/auth"
@@ -43,15 +42,7 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get the username to display immediately
-	var username string
-	database.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"username": username,
-		"content":  content,
-	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // GetCommentsByPost retrieves all comments for a specific post.

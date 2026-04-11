@@ -169,17 +169,18 @@ func renderTemplate(w http.ResponseWriter, tmplName string, data interface{}) {
 	err = tmpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		http.Error(w, "Error executing template: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
 // LoginPageHandler renders the login page.
 func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "login", nil)
+	renderTemplate(w, "login", PageData{})
 }
 
 // RegisterPageHandler renders the registration page.
 func RegisterPageHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "register", nil)
+	renderTemplate(w, "register", PageData{})
 }
 
 // CreatePostPageHandler renders the post creation page.

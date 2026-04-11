@@ -1,7 +1,6 @@
 package forum
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"forum/internals/auth"
@@ -56,26 +55,12 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Count updated totals
-	var likes, dislikes int
-	if postID != "" {
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE post_id = ? AND type = 1", targetID).Scan(&likes)
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE post_id = ? AND type = -1", targetID).Scan(&dislikes)
-	} else {
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE comment_id = ? AND type = 1", targetID).Scan(&likes)
-		database.DB.QueryRow("SELECT COUNT(*) FROM likes_dislikes WHERE comment_id = ? AND type = -1", targetID).Scan(&dislikes)
+	// Redirect back to the referring page (or home as fallback)
+	ref := r.Header.Get("Referer")
+	if ref == "" {
+		ref = "/"
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]int{"likes": likes, "dislikes": dislikes})
-}
-
-func deletePrevReaction(userID int, postID, commentID string) {
-	if postID != "" {
-		database.DB.Exec("DELETE FROM likes_dislikes WHERE user_id = ? AND post_id = ?", userID, postID)
-	} else if commentID != "" {
-		database.DB.Exec("DELETE FROM likes_dislikes WHERE user_id = ? AND comment_id = ?", userID, commentID)
-	}
+	http.Redirect(w, r, ref, http.StatusSeeOther)
 }
 
 // GetLikesCount returns the number of likes and dislikes for a given target.
@@ -110,4 +95,14 @@ func GetLikesCount(postID, commentID int) (likes, dislikes int, err error) {
 	}
 
 	return likes, dislikes, nil
+}
+
+// GetUserReaction returns whether the user has liked (1) or disliked (-1) a post, or 0 for neither.
+func GetUserReaction(userID, postID int) int {
+	var t int
+	database.DB.QueryRow(
+		"SELECT type FROM likes_dislikes WHERE user_id = ? AND post_id = ?",
+		userID, postID,
+	).Scan(&t)
+	return t
 }
