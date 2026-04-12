@@ -26,7 +26,8 @@ func main() {
 
 	//  Public Page Handlers
 	http.HandleFunc("/", middleware.Method("GET", handlers.HomeHandler))
-	http.HandleFunc("/posts/{page}", middleware.Method("GET", handlers.HomeHandler))
+	http.HandleFunc("/page/{page}", middleware.Method("GET", handlers.HomeHandler))
+	http.HandleFunc("/post/{post_id}", middleware.Method("GET", handlers.PostDetails))
 	http.HandleFunc("/login", middleware.Method("GET", middleware.Guest(handlers.LoginPageHandler)))
 	http.HandleFunc("/register", middleware.Method("GET", middleware.Guest(handlers.RegisterPageHandler)))
 
@@ -39,11 +40,10 @@ func main() {
 	http.HandleFunc("/auth/logout", middleware.Method("POST", middleware.AuthMiddleware(auth.LogoutHandler)))
 
 	//  Protected API Handlers
-	http.HandleFunc("/api/posts", middleware.Method("GET", middleware.AuthMiddleware(forum.CreatePostHandler)))
-
-	http.HandleFunc("/api/posts/delete", middleware.Method("POST", middleware.AuthMiddleware(forum.DeletePostHandler)))
+	http.HandleFunc("/api/posts/create", middleware.Method("POST", middleware.AuthMiddleware(forum.CreatePost)))
+	http.HandleFunc("/api/posts/delete", middleware.Method("POST", middleware.AuthMiddleware(forum.DeletePost)))
 	http.HandleFunc("/api/comments", middleware.Method("POST", middleware.AuthMiddleware(forum.CreateCommentHandler)))
-	http.HandleFunc("/api/likes", middleware.Method("POST", middleware.AuthMiddleware(forum.LikeDislikeHandler)))
+	http.HandleFunc("/api/likes", middleware.Method("POST", middleware.AuthMiddleware(forum.ReactionsHandler)))
 
 	fmt.Println("Server started on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

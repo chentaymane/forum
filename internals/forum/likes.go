@@ -2,14 +2,15 @@ package forum
 
 import (
 	"net/http"
+	"strconv"
 
 	"forum/internals/auth"
 	"forum/internals/database"
 	"forum/internals/errors"
 )
 
-// LikeDislikeHandler handles likes and dislikes for posts and comments.
-func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
+// ReactionsHandler handles likes and dislikes for posts and comments.
+func ReactionsHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := auth.GetUserFromRequest(r)
 	if err != nil {
 		errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
@@ -19,41 +20,15 @@ func LikeDislikeHandler(w http.ResponseWriter, r *http.Request) {
 	postID := r.FormValue("post_id")
 	commentID := r.FormValue("comment_id")
 	likeType := r.FormValue("type")
+	reactionType, _ := strconv.Atoi(likeType)
 
 	if (postID == "" && commentID == "") || (likeType != "1" && likeType != "-1") {
 		errors.RenderError(w, "Invalid parameters", http.StatusBadRequest)
 		return
 	}
-
-	var targetID string
-	var checkQuery, deleteQuery, insertQuery string
-
-	if postID != "" {
-		targetID = postID
-		checkQuery = "SELECT COUNT(*) FROM likes_dislikes WHERE user_id = ? AND post_id = ? AND type = ?"
-		deleteQuery = "DELETE FROM likes_dislikes WHERE user_id = ? AND post_id = ?"
-		insertQuery = "INSERT INTO likes_dislikes (user_id, post_id, type) VALUES (?, ?, ?)"
-	} else {
-		targetID = commentID
-		checkQuery = "SELECT COUNT(*) FROM likes_dislikes WHERE user_id = ? AND comment_id = ? AND type = ?"
-		deleteQuery = "DELETE FROM likes_dislikes WHERE user_id = ? AND comment_id = ?"
-		insertQuery = "INSERT INTO likes_dislikes (user_id, comment_id, type) VALUES (?, ?, ?)"
-	}
-
-	// Check if the user already reacted with the SAME type → toggle off
-	var existing int
-	database.DB.QueryRow(checkQuery, userID, targetID, likeType).Scan(&existing)
-
-	// Always remove the previous reaction first
-	database.DB.Exec(deleteQuery, userID, targetID)
-
-	// Only insert if it was NOT the same reaction (toggle off if same)
-	if existing == 0 {
-		_, err = database.DB.Exec(insertQuery, userID, targetID, likeType)
-		if err != nil {
-			errors.RenderError(w, "Failed to process like/dislike", http.StatusInternalServerError)
-			return
-		}
+	if errAdd := insertReaction(userID, postID, commentID, reactionType); errAdd != nil {
+		errors.RenderError(w, "Error inserting error", http.StatusInternalServerError)
+		return
 	}
 
 	// Redirect back to the referring page (or home as fallback)
@@ -69,10 +44,10 @@ func GetLikesCount(postID, commentID int) (likes, dislikes int, err error) {
 	var query string
 	var id int
 	if postID > 0 {
-		query = "SELECT type, COUNT(*) FROM likes_dislikes WHERE post_id = ? GROUP BY type"
+		query = "SELECT type, COUNT(*) FROM reactions WHERE post_id = ? GROUP BY type"
 		id = postID
 	} else {
-		query = "SELECT type, COUNT(*) FROM likes_dislikes WHERE comment_id = ? GROUP BY type"
+		query = "SELECT type, COUNT(*) FROM reactions WHERE comment_id = ? GROUP BY type"
 		id = commentID
 	}
 
@@ -102,8 +77,26 @@ func GetLikesCount(postID, commentID int) (likes, dislikes int, err error) {
 func GetUserReaction(userID, postID int) int {
 	var t int
 	database.DB.QueryRow(
-		"SELECT type FROM likes_dislikes WHERE user_id = ? AND post_id = ?",
+		"SELECT type FROM reactions WHERE user_id = ? AND post_id = ?",
 		userID, postID,
 	).Scan(&t)
 	return t
+}
+
+func insertReaction(userID int, postID, commentID string, reactionType int) error {
+	_, err := database.DB.Exec(
+		`INSERT INTO reactions (user_id, post_id, comment_id, type) VALUES (?, ?, ?, ?)`,
+		userID,
+		nilIfEmpty(postID),
+		nilIfEmpty(commentID),
+		reactionType,
+	)
+	return err
+}
+
+func nilIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
 }

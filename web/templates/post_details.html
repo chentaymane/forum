@@ -1,0 +1,134 @@
+{{define "title"}}{{.Post.Title}}{{end}}
+
+{{define "content"}}
+<div class="container">
+
+    <section class="posts">
+        <article class="post">
+            <div class="vote-col">
+                {{if $.User}}
+                <form action="/api/likes" method="POST">
+                    <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                    <input type="hidden" name="type" value="1">
+                    <button type="submit" class="vote-btn {{if eq .Post.ReactedTo 1}}active{{end}}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                    </button>
+                </form>
+                <span class="vote-score">{{.Post.Likes}}</span>
+                <form action="/api/likes" method="POST">
+                    <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                    <input type="hidden" name="type" value="-1">
+                    <button type="submit" class="vote-btn {{if eq .Post.ReactedTo -1}}active{{end}}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                </form>
+                {{else}}
+                <span class="vote-btn" style="cursor:default;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                </span>
+                <span class="vote-score">{{.Post.Likes}}</span>
+                <span class="vote-btn" style="cursor:default;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+                {{end}}
+            </div>
+
+            <div class="post-body-col">
+                <div class="post-meta">
+                    <div class="avatar">{{slice .Post.Username 0 2}}</div>
+                    <span class="username">{{.Post.Username}}</span>
+                    <span class="date">{{.Post.CreatedAt}}</span>
+                    <div class="post-categories">
+                        {{range .Post.Categories}}
+                        <span class="category">{{.}}</span>
+                        {{end}}
+                    </div>
+                </div>
+
+                <h1 class="post-title">{{.Post.Title}}</h1>
+                <div class="post-content">{{.Post.Content}}</div>
+
+                <div class="post-actions">
+                    <span class="action-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        {{.Post.CommentsLen}} comments
+                    </span>
+                    {{if $.User}}
+                    {{if eq $.User.ID .Post.UserID}}
+                    <form action="/api/posts/delete" method="POST" style="margin-left:auto;">
+                        <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                        <button type="submit" class="delete-btn" onclick="return confirm('Delete this post?')">Delete</button>
+                    </form>
+                    {{end}}
+                    {{end}}
+                </div>
+
+                <div class="comments-section">
+                    <h4>Comments</h4>
+                    {{if .Post.Comments}}
+                    {{range .Post.Comments}}
+                    <div class="comment">
+                        <span class="comment-author">{{.Username}}</span>
+                        <span class="comment-content">{{.Content}}</span>
+                    </div>
+                    {{end}}
+                    {{else}}
+                    <p class="no-comments">No comments yet. Be the first!</p>
+                    {{end}}
+
+                    {{if $.User}}
+                    <form action="/api/comments" method="POST" class="comment-form">
+                        <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                        <input type="text" name="content" placeholder="Add a comment…" required>
+                        <button type="submit">Send</button>
+                    </form>
+                    {{end}}
+                </div>
+            </div>
+        </article>
+
+        <div class="post-detail-back">
+            <a href="/">&larr; Back to posts</a>
+        </div>
+    </section>
+
+    <aside class="right-panel">
+        {{if .User}}
+        <a href="/create-post" class="create-post-btn">+ Create post</a>
+        <div class="panel-card">
+            <h3>My posts</h3>
+            <ul>
+                <li>
+                    <a href="/?my_posts=1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Created posts
+                    </a>
+                </li>
+                <li>
+                    <a href="/?my_liked_posts=1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+                        Liked posts
+                    </a>
+                </li>
+                <li>
+                    <a href="/?my_comments=1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        Commented posts
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {{end}}
+        <div class="panel-card">
+            <h3>Categories</h3>
+            <ul>
+                <li><a href="/">All posts</a></li>
+                {{range .Categories}}
+                <li><a href="/?category_id={{.ID}}">{{.Name}}</a></li>
+                {{end}}
+            </ul>
+        </div>
+    </aside>
+
+</div>
+{{end}}

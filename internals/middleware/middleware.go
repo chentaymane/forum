@@ -12,7 +12,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		// Check if user exists in session/cookie
 		_, err := auth.GetUserFromRequest(r)
 		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
