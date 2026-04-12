@@ -18,12 +18,13 @@
 
             {{/* Header: author + categories + delete */}}
             <div class="post-detail-header">
-                <div class="post-detail-author">
-                    <div class="post-detail-avatar">{{slice .Post.Username 0 2}}</div>
-                    <div class="post-detail-author-info">
-                        <span class="post-detail-username">{{.Post.Username}}</span>
+                <div class="post-detail">
+						<div class="author-info">
+<img src="https://ui-avatars.com/api/?name={{ .Post.Username }}" class="author-avatar"></img>
+                    <div class="author-username">{{slice .Post.Username }}</div>
+					</div>
                         <span class="post-detail-date">{{.Post.CreatedAt}}</span>
-                    </div>
+					</div>
                 </div>
                 <div class="post-detail-cats">
                     {{range .Post.Categories}}
@@ -99,15 +100,12 @@
             {{if .Post.Comments}}
             <div class="comments-list">
                 {{range .Post.Comments}}
-                <div class="detail-comment">
-                    <div class="detail-comment-avatar">{{slice .Username 0 2}}</div>
-                    <div class="detail-comment-body">
-                        <div class="detail-comment-meta">
-                            <span class="detail-comment-author">{{.Username}}</span>
+                <div class="author-info-c">
+                    <img src="https://ui-avatars.com/api/?name={{.Username}}" class="author-avatar-c"></img>
+                          <span class="author-username-c">{{.Username}}</span>
                         </div>
+
                         <div class="detail-comment-content">{{.Content}}</div>
-                    </div>
-                </div>
                 {{end}}
             </div>
             {{else}}
@@ -138,44 +136,6 @@
 
     </div>{{/* end post-detail-wrap */}}
 
-    {{/* Right sidebar */}}
-    <aside class="right-panel">
-        {{if .User}}
-        <a href="/create-post" class="create-post-btn">+ Create post</a>
-        <div class="panel-card">
-            <h3>My posts</h3>
-            <ul>
-                <li>
-                    <a href="/?my_posts=1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        Created posts
-                    </a>
-                </li>
-                <li>
-                    <a href="/?my_liked_posts=1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
-                        Liked posts
-                    </a>
-                </li>
-                <li>
-                    <a href="/?my_comments=1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        Commented posts
-                    </a>
-                </li>
-            </ul>
-        </div>
-        {{end}}
-        <div class="panel-card">
-            <h3>Categories</h3>
-            <ul>
-                <li><a href="/">All posts</a></li>
-                {{range .Categories}}
-                <li><a href="/?category_id={{.ID}}">{{.Name}}</a></li>
-                {{end}}
-            </ul>
-        </div>
-    </aside>
-
+  
 </div>
 {{end}}

@@ -113,9 +113,14 @@ main {
 
 .container {
     display: grid;
-    grid-template-columns: 240px 1fr;
+
     gap: 2rem;
     align-items: start;
+}
+
+.reaction-btn {
+    width: clamp(5rem, 2vw, 15rem);
+    height: clamp(2rem, 4vh,  30rem);
 }
 
 /* ── Sidebar ─────────────────────────────────── */
@@ -369,6 +374,16 @@ aside a:hover {
     color: var(--text-light);
 }
 
+.post-detail {
+    display: flex;
+    justify-content: space-between;
+}
+
+
+
+.author-username {
+    font-size: clamp(1.2rem, 2vw, 10rem);
+}
 .comment {
     display: flex;
     gap: 0.4rem;
@@ -380,15 +395,53 @@ aside a:hover {
     border: 1px solid var(--card-border);
 }
 
-.comment-author {
-    font-weight: 700;
-    color: var(--primary);
-    white-space: nowrap;
+
+.author-avatar {
+      border-radius: 100%;
+    border: 2px solid;
+    border-color:  #3852B4;
+       height: clamp(1rem, 8vh, 20rem);
 }
 
+.author-username-c {
+    font-size: clamp(0.8rem, 1.5vw, 8rem);
+    
+   
+}
+
+.author-avatar-c {
+      border-radius: 100%;
+    border: 2px solid;
+    border-color:  #3852B4;
+     height: clamp(0.5rem, 7vh, 20rem);
+}
+
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.author-info-c {
+    display: flex;
+    
+    align-items: center;
+    
+    gap: 0.5rem;
+}
 .comment-content {
     color: var(--text);
+  
     line-height: 1.5;
+}
+
+.detail-comment-content {
+      border : 1px solid;
+    margin: 0.5rem;
+    padding: 0rem 0.6rem 0.5rem 0.5rem;
+    width: fit-content;
+    border-radius: 10px;
+    border-color: #3852B4;
 }
 
 .comment-form {
@@ -626,3 +679,9 @@ footer {
     color: var(--muted);
     padding: .5rem 0;
 }
+
+
+
+
+
+
