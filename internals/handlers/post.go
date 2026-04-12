@@ -3,6 +3,7 @@ package handlers
 import (
 	"forum/internals/auth"
 	"forum/internals/database"
+	"forum/internals/errors"
 	"forum/internals/forum"
 	"net/http"
 	"strconv"
@@ -34,7 +35,7 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 	postIDStr := r.PathValue("post_id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil || postID <= 0 {
-		http.NotFound(w, r)
+		errors.RenderError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
@@ -67,7 +68,7 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 		&post.ReactedTo,
 	)
 	if err != nil {
-		http.NotFound(w, r)
+		errors.RenderError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 

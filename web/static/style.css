@@ -608,3 +608,21 @@ footer {
     background: var(--primary-hover);
     transform: translateY(-1px);
 }
+.post-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: .75rem;
+    line-height: 1.4;
+}
+
+.post-detail-back {
+    margin-top: 1rem;
+    font-size: 13px;
+}
+
+.no-comments {
+    font-size: 13px;
+    color: var(--muted);
+    padding: .5rem 0;
+}
