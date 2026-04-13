@@ -81,10 +81,7 @@
                 </div>
                 {{end}}
 
-                <span class="detail-comment-count">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    {{.Post.CommentsLen}} {{if eq .Post.CommentsLen 1}}comment{{else}}comments{{end}}
-                </span>
+                
             </div>
 
         </div>{{/* end post-detail-card */}}
@@ -93,8 +90,8 @@
         <div class="post-detail-comments">
 
             <div class="comments-header">
-                <h3>Comments</h3>
-                <span class="comments-count-badge">{{.Post.CommentsLen}}</span>
+                <span>Comments</span>
+                <span class="comments-count-badge">({{.Post.CommentsLen}})</span>
             </div>
 
             {{if .Post.Comments}}
@@ -120,8 +117,8 @@
                 <h4>Leave a comment</h4>
                 <form action="/api/comments" method="POST" class="detail-comment-form">
                     <input type="hidden" name="post_id" value="{{.Post.ID}}">
-                    <input type="text" name="content" placeholder="Write your comment…" required>
-                    <button type="submit">Post</button>
+                    <input type="text" name="content"  class="input-comment" placeholder="Write your comment…" required>
+                    <button class="submit-button" type="submit">Post</button>
                 </form>
             </div>
             {{else}}

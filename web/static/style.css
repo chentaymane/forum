@@ -68,7 +68,7 @@ nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.875rem 2rem;
+    padding: 0.875rem 2rem;aymane
 }
 
 nav a,
@@ -113,14 +113,22 @@ main {
 
 .container {
     display: grid;
-
-    gap: 2rem;
-    align-items: start;
+        align-items: start;
 }
 
 .reaction-btn {
     width: clamp(5rem, 2vw, 15rem);
+    margin-right: 0.5rem;
     height: clamp(2rem, 4vh,  30rem);
+}
+
+.post-detail-back {
+    margin-bottom: 1rem;
+}
+.reaction-group {
+    margin-top: 2rem;
+    
+    height: clamp(2rem, 8vh, 10rem);
 }
 
 /* ── Sidebar ─────────────────────────────────── */
@@ -232,6 +240,8 @@ aside a:hover {
 
 .post-content {
     color: var(--text);
+    overflow-wrap: break-word;
+    word-break: break-word;
     font-size: 0.95rem;
     line-height: 1.7;
     margin-bottom: 1rem;
@@ -382,7 +392,9 @@ aside a:hover {
 
 
 .author-username {
-    font-size: clamp(1.2rem, 2vw, 10rem);
+        font-size: clamp(1rem, 2vw, 8rem);
+
+  
 }
 .comment {
     display: flex;
@@ -397,23 +409,29 @@ aside a:hover {
 
 
 .author-avatar {
-      border-radius: 100%;
-    border: 2px solid;
-    border-color:  #3852B4;
-       height: clamp(1rem, 8vh, 20rem);
+      border-radius: 50%;
+
+     height:  clamp(2.5rem, 2.5vw, 4rem);
+    margin-bottom: 0.6rem;
+    
 }
 
 .author-username-c {
-    font-size: clamp(0.8rem, 1.5vw, 8rem);
+    font-size: clamp(1rem, 1vw, 8rem);
     
    
 }
 
+.comments-header {
+    margin-bottom: 1rem;
+    font-size: clamp(1rem, 1.5vw, 8rem)
+}
+
+
 .author-avatar-c {
-      border-radius: 100%;
-    border: 2px solid;
-    border-color:  #3852B4;
-     height: clamp(0.5rem, 7vh, 20rem);
+      border-radius: 50%;
+     height:  clamp(1.7rem, 2vw, 3rem);
+    
 }
 
 .author-info {
@@ -429,14 +447,14 @@ aside a:hover {
     
     gap: 0.5rem;
 }
-.comment-content {
-    color: var(--text);
-  
+.detail-comment-content {
+    overflow-wrap: break-word;
+    word-break: break-word;
     line-height: 1.5;
 }
 
 .detail-comment-content {
-      border : 1px solid;
+
     margin: 0.5rem;
     padding: 0rem 0.6rem 0.5rem 0.5rem;
     width: fit-content;
@@ -444,23 +462,15 @@ aside a:hover {
     border-color: #3852B4;
 }
 
-.comment-form {
+
+.detail-comment-form {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
+  
+    direction: row;
+    gap: 0.6rem;
 }
 
-.comment-form input {
-    flex: 1;
-    padding: 0.55rem 0.875rem;
-    font-size: 0.875rem;
-}
 
-.comment-form button {
-    width: auto;
-    padding: 0.55rem 1.25rem;
-    font-size: 0.875rem;
-}
 
 /* ── Forms / Inputs / Buttons ────────────────── */
 .auth-form {
@@ -657,6 +667,8 @@ footer {
     transition: background 0.18s, transform 0.12s;
 }
 
+
+
 .error-page a:hover {
     background: var(--primary-hover);
     transform: translateY(-1px);
@@ -679,6 +691,7 @@ footer {
     color: var(--muted);
     padding: .5rem 0;
 }
+
 
 
 
