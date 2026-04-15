@@ -29,6 +29,7 @@ func ReactionsHandler(w http.ResponseWriter, r *http.Request) {
 	if errAdd := insertReaction(userID, postID, commentID, reactionType); errAdd != nil {
 		if errAdd == ErrInvalidTarget {
 			errors.RenderError(w, "Error inserting error: Invalid Post/Comment Id", http.StatusBadRequest)
+			return
 		}
 		errors.RenderError(w, "Error inserting error", http.StatusInternalServerError)
 		return
