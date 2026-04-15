@@ -1,0 +1,73 @@
+package forum
+
+import (
+	"net/http"
+	"strconv"
+	"strings"
+
+	"forum/internals/auth"
+	"forum/internals/database"
+	"forum/internals/errors"
+)
+
+// DeletePost handles the deletion of a post.
+func DeletePost(w http.ResponseWriter, r *http.Request) {
+	userID, _ := auth.GetUserFromRequest(r)
+
+	postIDStr := r.FormValue("post_id")
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil {
+		errors.RenderError(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	DeleteWithOwnershipCheck(w, r, "posts", "post_id", postID, userID, "/", "post")
+}
+
+func CreatePost(w http.ResponseWriter, r *http.Request) {
+	userID, _ := auth.GetUserFromRequest(r)
+	title := strings.TrimSpace(r.FormValue("title"))
+	content := strings.TrimSpace(r.FormValue("content"))
+	categoryIDs, err := parseCatsQuery(r.PostForm["categories"])
+
+	if content == "" || title == "" || len(title) > 60 || len(categoryIDs) == 0 {
+		errors.RenderError(w, "Title and content and atleast 1 category are required, and title is limited to 60 chars.", http.StatusBadRequest)
+		return
+	}
+
+	tx, err := database.DB.Begin()
+	if err != nil {
+		errors.RenderError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Insert post
+	res, err := tx.Exec("INSERT INTO posts (user_id, title, content) VALUES (?, ?, ?)", userID, title, content)
+	if err != nil {
+		errors.RenderError(w, "Failed to create post", http.StatusInternalServerError)
+		return
+	}
+
+	postID, err := res.LastInsertId()
+	if err != nil {
+		errors.RenderError(w, "Failed to get post ID", http.StatusInternalServerError)
+		return
+	}
+
+	// Associate categories
+	for _, catID := range categoryIDs {
+		_, err = tx.Exec("INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)", postID, catID)
+		if err != nil {
+			errors.RenderError(w, "Failed to associate categories", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		errors.RenderError(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
