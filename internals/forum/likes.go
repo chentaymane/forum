@@ -65,7 +65,7 @@ func insertReaction(userID int, postID, commentID string, reactionType int) erro
 	}
 	_, err = database.DB.Exec(
 		`INSERT INTO reactions (user_id, post_id, comment_id, type)
-		 SELECT ?, ?, ?, ?`,
+		 VALUES ?, ?, ?, ?`,
 		userID,
 		nilIfEmpty(postID),
 		nilIfEmpty(commentID),
