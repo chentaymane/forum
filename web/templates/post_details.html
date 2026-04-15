@@ -165,7 +165,7 @@
           <h4>Leave a comment</h4>
           <form action="/api/comments" method="POST" class="detail-comment-form">
             <input type="hidden" name="post_id" value="{{.Post.PostID}}">
-            <input type="text" name="content" placeholder="Write a comment…" required>
+            <input type="text" name="content" placeholder="Write a comment…" required maxlength="200">
             <button type="submit" class="btn btn-primary btn-sm">Post</button>
           </form>
         </div>
