@@ -87,8 +87,8 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	postID := r.FormValue("post_id")
 	content := r.FormValue("content")
 
-	if postID == "" || content == "" {
-		errors.RenderError(w, "Post ID and content are required", http.StatusBadRequest)
+		if postID == "" || content == "" || len(content) > 200 {
+		errors.RenderError(w, "Invalid Input", http.StatusBadRequest)
 		return
 	}
 

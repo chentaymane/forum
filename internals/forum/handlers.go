@@ -30,11 +30,18 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	content := strings.TrimSpace(r.FormValue("content"))
 	categoryIDs, err := parseCatsQuery(r.PostForm["categories"])
 
-	if content == "" || title == "" || len(title) > 60 || len(categoryIDs) == 0 {
-		errors.RenderError(w, "Title and content and atleast 1 category are required, and title is limited to 60 chars.", http.StatusBadRequest)
+		if content == "" || len(content) > 1000 || title == "" || len(title) > 60 || len(categoryIDsStr) == 0 {
+		errors.RenderError(w, "Invalid Input", http.StatusBadRequest)
 		return
 	}
-
+	for _, c := range categoryIDsStr {
+		var id int
+		err := database.DB.QueryRow("SELECT id FROM categories WHERE id = ?", c).Scan(&id)
+		if err != nil {
+			errors.RenderError(w, "Invalid Category", http.StatusBadRequest)
+			return
+		}
+	}
 	tx, err := database.DB.Begin()
 	if err != nil {
 		errors.RenderError(w, "Database error", http.StatusInternalServerError)
