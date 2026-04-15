@@ -33,18 +33,6 @@
     <footer>
         <p>&copy; 2026 Forum</p>
     </footer>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('a.btn-back, a[data-back]').forEach(function (btn) {
-                btn.addEventListener('click', function (e) {
-                    if (document.referrer && document.referrer !== window.location.href) {
-                        e.preventDefault();
-                        history.back();
-                    }
-                });
-            });
-        });
-    </script>
 </body>
 </html>
 {{end}}
