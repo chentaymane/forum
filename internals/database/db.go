@@ -22,13 +22,16 @@ func InitDB() error {
 	}
 
 	if err = loadSchema(); err != nil {
+		DB.Close()
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
 
 	if err = DB.Ping(); err != nil {
+		DB.Close()
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 	if err = seedCategories(); err != nil {
+		DB.Close()
 		return fmt.Errorf("failed to seed categories: %w", err)
 	}
 
