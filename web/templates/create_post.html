@@ -17,7 +17,7 @@
             <div class="category-selection">
                 {{range .Categories}}
                 <label>
-                    <input type="checkbox" name="categories" value="{{.ID}}">
+<input type="checkbox" name="categories" value="{{.ID}}" {{if eq .Name "General"}}checked{{end}}> 
                     {{.Name}}
                 </label>
                 {{end}}
