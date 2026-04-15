@@ -5,6 +5,7 @@ import (
 	"unicode"
 	"net/mail"
 )
+
 func isValidEmail(email string) bool {
 	email = strings.TrimSpace(email)
 
