@@ -10,15 +10,14 @@
         </div>
         <div class="field">
             <label>Content</label>
-            <textarea name="content" placeholder="Write your post…" required rows="9"></textarea>
+            <textarea name="content" placeholder="Write your post…" required rows="9" maxlength="2000"></textarea>
         </div>
         <div class="field">
             <label>Categories</label>
             <div class="category-selection">
                 {{range .Categories}}
                 <label>
-<input type="checkbox" name="categories" value="{{.ID}}" {{if eq .Name "General"}}checked{{end}}> 
-                    {{.Name}}
+<input type="checkbox" name="categories" value="{{.ID}}" {{if eq .Name "General"}}checked{{end}}>                    {{.Name}}
                 </label>
                 {{end}}
             </div>
