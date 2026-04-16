@@ -21,46 +21,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := database.DB.Begin()
-	if err != nil {
-		errors.RenderError(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-	defer tx.Rollback()
-
-	//  Check ownership
-	var ownerID int
-	err = tx.QueryRow("SELECT user_id FROM posts WHERE id = ?", postID).Scan(&ownerID)
-	if err != nil {
-		errors.RenderError(w, "Post not found", http.StatusNotFound)
-		return
-	}
-
-	if ownerID != userID {
-		errors.RenderError(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	//  Single delete (CASCADE handles everything else)
-	result, err := tx.Exec("DELETE FROM posts WHERE id = ?", postID)
-	if err != nil {
-		errors.RenderError(w, "Failed to delete post", http.StatusInternalServerError)
-		return
-	}
-
-	// optional safety check
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		errors.RenderError(w, "Post not found", http.StatusNotFound)
-		return
-	}
-
-	if err = tx.Commit(); err != nil {
-		errors.RenderError(w, "Failed to commit deletion", http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	DeleteWithOwnershipCheck(w, r, "posts", "post_id", postID, userID, "post")
 }
 
 func CreatePost(w http.ResponseWriter, r *http.Request) {

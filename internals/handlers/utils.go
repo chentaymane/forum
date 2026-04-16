@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"bytes"
+	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
 	"sync"
-	"text/template"
 
 	"forum/internals/database"
 	"forum/internals/errors"
