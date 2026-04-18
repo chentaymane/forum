@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"forum/internals/auth"
-	"forum/internals/errors"
-	"forum/internals/forum"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"forum/internals/auth"
+	"forum/internals/errors"
+	"forum/internals/forum"
 )
 
 // HomeHandler renders the home page with filtered posts.
@@ -45,7 +46,7 @@ func handleHome(w http.ResponseWriter, r *http.Request, page int) {
 		commentedByUserID = userID
 	}
 
-	pageSize := 10
+	pageSize := 1
 	offset := (currentPage - 1) * pageSize
 
 	posts, err := forum.GetPosts(catID, filterUserID, userID, likedByUserID, commentedByUserID, pageSize, offset)
