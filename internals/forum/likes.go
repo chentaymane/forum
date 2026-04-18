@@ -27,7 +27,6 @@ func ReactionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errAdd := insertReaction(userID, postID, commentID, reactionType); errAdd != nil {
-		fmt.Println(errAdd)
 		if errAdd == ErrInvalidTarget {
 			errors.RenderError(w, "Error inserting error: Invalid Post/Comment Id", http.StatusBadRequest)
 			return
@@ -61,7 +60,6 @@ func insertReaction(userID int, postID, commentID string, reactionType int) erro
 		).Scan(&exists)
 	}
 	if err != nil || !exists {
-		fmt.Println("aloo")
 		return ErrInvalidTarget
 	}
 	_, err = database.DB.Exec(

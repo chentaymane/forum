@@ -46,7 +46,7 @@ func handleHome(w http.ResponseWriter, r *http.Request, page int) {
 		commentedByUserID = userID
 	}
 
-	pageSize := 1
+	pageSize := 10
 	offset := (currentPage - 1) * pageSize
 
 	posts, err := forum.GetPosts(catID, filterUserID, userID, likedByUserID, commentedByUserID, pageSize, offset)

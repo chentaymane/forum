@@ -112,7 +112,7 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 		query.WriteString(" WHERE " + strings.Join(where, " AND "))
 	}
 
-	// ✅ GROUP BY (correct place)
+	//  GROUP BY (correct place)
 	query.WriteString(" GROUP BY p.id")
 
 	// ORDER
