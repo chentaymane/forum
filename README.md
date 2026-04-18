@@ -81,7 +81,7 @@ A lightweight, full-stack web forum built entirely in Go with an SQLite database
 │   │   └── errors.go                # RenderError — renders error.html with code + message
 │   │
 │   ├── forum/
-│   │   ├── posts.go                 # Post struct, GetPosts, GetPostsCount, GetPostCategories
+│   │   ├── posts.go                 # Post struct, GetPosts, GetPostsCount
 │   │   ├── comments.go              # Comment struct, CreateComment, DeleteComment, GetCommentsByPost
 │   │   └── likes.go                 # ReactionsHandler, GetLikesCount, insertReaction
 │   │

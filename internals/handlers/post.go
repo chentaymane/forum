@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"forum/internals/auth"
 	"forum/internals/database"
@@ -18,7 +20,7 @@ func CreatePostPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, _ := GetUserData(userID)
+	user, _ := getUserData(userID)
 
 	categories, _ := getCategories()
 	data := PageData{
@@ -41,15 +43,17 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 
 	// Get current user (guests can view post details too)
 	userID, _ := auth.GetUserFromRequest(r)
-	currentUser, _ := GetUserData(userID)
+	currentUser, _ := getUserData(userID)
 
 	// Fetch the post with reaction state for the current user
 	var post forum.Post
+	var categoriesStr sql.NullString
 	err = database.DB.QueryRow(`
 		SELECT p.id, p.user_id, u.username, p.title, p.content, p.created_at,
-		       COALESCE(re.type, 0) AS reacted_to,
-		       COALESCE(likes.count, 0) AS likes,
-		       COALESCE(dislikes.count, 0) AS dislikes
+		       	COALESCE(re.type, 0) AS reacted_to,
+		       	COALESCE(likes.count, 0) AS likes,
+		       	COALESCE(dislikes.count, 0) AS dislikes,
+            	GROUP_CONCAT(DISTINCT c.name) AS categories
 		FROM posts p
 		JOIN users u ON u.id = p.user_id
 		LEFT JOIN reactions re ON p.id = re.post_id AND re.user_id = ?
@@ -65,7 +69,10 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 		    WHERE type = -1 AND post_id IS NOT NULL
 		    GROUP BY post_id
 		) dislikes ON p.id = dislikes.post_id
-		WHERE p.id = ?`,
+		LEFT JOIN post_categories pc_all ON p.id = pc_all.post_id
+        LEFT JOIN categories c ON pc_all.category_id = c.id
+		WHERE p.id = ?
+		`,
 		userID, postID,
 	).Scan(
 		&post.PostID,
@@ -77,6 +84,7 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 		&post.ReactedTo,
 		&post.Likes,
 		&post.Dislikes,
+		&categoriesStr,
 	)
 	if err != nil {
 		errors.RenderError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -87,7 +95,11 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 	post.CreatedAt = forum.FormatDate(post.CreatedAt)
 
 	// Fetch categories for this post
-	post.Categories, _ = forum.GetPostCategories(post.PostID)
+	if categoriesStr.Valid && categoriesStr.String != "" {
+		post.Categories = strings.Split(categoriesStr.String, ",")
+	} else {
+		post.Categories = []string{}
+	}
 
 	// Fetch ALL comments (no 2-comment limit like the home feed)
 	post.Comments, _ = forum.GetCommentsByPost(userID, post.PostID)

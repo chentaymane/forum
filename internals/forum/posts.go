@@ -1,8 +1,8 @@
 package forum
 
 import (
+	"database/sql"
 	"strings"
-	"time"
 
 	"forum/internals/database"
 )
@@ -23,17 +23,16 @@ type Post struct {
 	CommentsLen int
 }
 
-// CreatePostHandler handles post creation.
-
 // GetPosts retrieves posts with filtering and pagination.
 func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, commentedByUserID int, limit int, offset int) ([]Post, error) {
 	var query strings.Builder
 	var args []interface{}
 	var where []string
 
-	// BASE QUERY
+	// BASE QUERY (NO ; AND NO GROUP BY HERE)
 	query.WriteString(`
-        SELECT p.id,
+        SELECT 
+            p.id,
             p.user_id,
             u.username,
             p.title,
@@ -41,36 +40,44 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
             p.created_at,
             COALESCE(re.type, 0) AS reacted_to,
             COALESCE(likes.count, 0) AS likes,
-            COALESCE(dislikes.count, 0) AS dislikes
+            COALESCE(dislikes.count, 0) AS dislikes,
+            GROUP_CONCAT(DISTINCT c.name) AS categories
+
         FROM posts p
         JOIN users u ON p.user_id = u.id
+
         LEFT JOIN reactions re
             ON p.id = re.post_id AND re.user_id = ?
+
         LEFT JOIN (
             SELECT post_id, COUNT(*) as count
             FROM reactions
             WHERE type = 1 AND post_id IS NOT NULL
             GROUP BY post_id
         ) likes ON p.id = likes.post_id
+
         LEFT JOIN (
             SELECT post_id, COUNT(*) as count
             FROM reactions
             WHERE type = -1 AND post_id IS NOT NULL
             GROUP BY post_id
         ) dislikes ON p.id = dislikes.post_id
+
+        LEFT JOIN post_categories pc_all ON p.id = pc_all.post_id
+        LEFT JOIN categories c ON pc_all.category_id = c.id
     `)
 
-	// always bind userID (0 if not logged in)
+	// always bind userID
 	args = append(args, userID)
 
-	// CATEGORY JOIN — must come before WHERE
+	// FILTER: category
 	if categoryID > 0 {
-		query.WriteString(" JOIN post_categories pc ON p.id = pc.post_id")
-		where = append(where, "pc.category_id = ?")
+		query.WriteString(" JOIN post_categories pc_filter ON p.id = pc_filter.post_id")
+		where = append(where, "pc_filter.category_id = ?")
 		args = append(args, categoryID)
 	}
 
-	// FILTERS (subqueries in WHERE)
+	// FILTER: liked
 	if likedByUserID > 0 {
 		where = append(where, `
             p.id IN (
@@ -82,11 +89,13 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 		args = append(args, likedByUserID)
 	}
 
+	// FILTER: author
 	if ofUserID > 0 {
 		where = append(where, "p.user_id = ?")
 		args = append(args, ofUserID)
 	}
 
+	// FILTER: commented
 	if commentedByUserID > 0 {
 		where = append(where, `
             p.id IN (
@@ -103,6 +112,9 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 		query.WriteString(" WHERE " + strings.Join(where, " AND "))
 	}
 
+	// ✅ GROUP BY (correct place)
+	query.WriteString(" GROUP BY p.id")
+
 	// ORDER
 	query.WriteString(" ORDER BY p.created_at DESC")
 
@@ -116,7 +128,6 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 		}
 	}
 
-	// EXECUTE
 	rows, err := database.DB.Query(query.String(), args...)
 	if err != nil {
 		return nil, err
@@ -126,6 +137,8 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 	var posts []Post
 	for rows.Next() {
 		var p Post
+		var categoriesStr sql.NullString
+
 		if err := rows.Scan(
 			&p.PostID,
 			&p.UserID,
@@ -136,17 +149,25 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 			&p.ReactedTo,
 			&p.Likes,
 			&p.Dislikes,
+			&categoriesStr,
 		); err != nil {
-			return nil, err // don't silently swallow scan errors
+			return nil, err
 		}
 
 		p.CreatedAt = FormatDate(p.CreatedAt)
-		p.Categories, _ = GetPostCategories(p.PostID)
+
+		if categoriesStr.Valid && categoriesStr.String != "" {
+			p.Categories = strings.Split(categoriesStr.String, ",")
+		} else {
+			p.Categories = []string{}
+		}
+
 		p.Comments, _ = GetCommentsByPost(userID, p.PostID)
 		p.CommentsLen = len(p.Comments)
 		if p.CommentsLen > 2 {
 			p.Comments = p.Comments[:2]
 		}
+
 		posts = append(posts, p)
 	}
 
@@ -195,42 +216,4 @@ func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUse
 	var count int
 	err := database.DB.QueryRow(query.String(), args...).Scan(&count)
 	return count, err
-}
-
-func GetPostCategories(postID int) ([]string, error) {
-	rows, err := database.DB.Query(`
-		SELECT c.name FROM categories c
-		JOIN post_categories pc ON c.id = pc.category_id
-		WHERE pc.post_id = ?
-	`, postID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var categories []string
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
-		}
-		categories = append(categories, name)
-	}
-	return categories, nil
-}
-
-// Add this helper function
-func FormatDate(raw string) string {
-	// Try common SQLite datetime formats
-	formats := []string{
-		"2006-01-02 15:04:05",
-		"2006-01-02T15:04:05Z",
-		"2006-01-02T15:04:05",
-	}
-	for _, layout := range formats {
-		if t, err := time.Parse(layout, raw); err == nil {
-			return t.Format("2 Jan 2006 · 15:04")
-		}
-	}
-	return raw // fallback: return as-is if parsing fails
 }

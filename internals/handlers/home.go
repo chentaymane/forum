@@ -14,7 +14,7 @@ import (
 func handleHome(w http.ResponseWriter, r *http.Request, page int) {
 	userID, _ := auth.GetUserFromRequest(r)
 
-	currentUser, _ := GetUserData(userID)
+	currentUser, _ := getUserData(userID)
 
 	//  filters
 	catIDStr := r.URL.Query().Get("category_id")

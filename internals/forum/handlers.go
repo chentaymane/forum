@@ -21,7 +21,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	DeleteWithOwnershipCheck(w, r, "posts", "post_id", postID, userID, "post")
+	deleteWithOwnershipCheck(w, r, "posts", "post_id", postID, userID, "post")
 }
 
 func CreatePost(w http.ResponseWriter, r *http.Request) {

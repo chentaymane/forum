@@ -33,7 +33,7 @@ func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	DeleteWithOwnershipCheck(w, r, "comments", "comment_id", commentID, userID, "comment")
+	deleteWithOwnershipCheck(w, r, "comments", "comment_id", commentID, userID, "comment")
 }
 
 // CreateCommentHandler handles comment creation.

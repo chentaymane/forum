@@ -22,8 +22,7 @@ func main() {
 	// Create a new ServeMux
 
 	// Static Files
-	fs := http.FileServer(http.Dir("web/static"))
-	http.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	http.HandleFunc("/static/", middleware.Method("GET", handlers.StaticFileHandlerHandler))
 
 	//  Public Page Handlers
 	http.HandleFunc("/", middleware.Method("GET", handlers.HomeHandler))

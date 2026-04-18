@@ -8,7 +8,6 @@ import (
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Check if user exists in session/cookie
 		if !auth.LoggedIn(r) {
 			errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -20,7 +19,6 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 func Guest(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if auth.LoggedIn(r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -35,7 +33,7 @@ func Method(method string, next http.HandlerFunc) http.HandlerFunc {
 
 		if r.Method != method {
 			// TODO RENDER ERROR
-			errors.RenderError(w, http.StatusText(405), 405)
+			errors.RenderError(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
 		next(w, r)

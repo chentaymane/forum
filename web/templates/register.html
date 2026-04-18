@@ -3,21 +3,49 @@
 {{define "content"}}
 <div class="auth-form">
     <h2>Create account</h2>
+
     <form action="/auth/register" method="POST">
         <div class="field">
-            <label>Email</label>
-            <input type="email" name="email" placeholder="you@example.com" required>
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required>
         </div>
+
         <div class="field">
-            <label>Username</label>
-            <input type="text" name="username" placeholder="yourname" required>
+            <label for="username">Username</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="yourname"
+                minlength="3"
+                maxlength="20"
+                pattern="[a-zA-Z][a-zA-Z0-9_\-]*"
+                title="3–20 chars, starts with a letter, only letters/digits/_/-"
+                required
+            >
         </div>
+
         <div class="field">
-            <label>Password</label>
-            <input type="password" name="password" placeholder="••••••••" required>
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="••••••••"
+                minlength="8"
+                maxlength="72"
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,72}"
+                title="8–72 chars with uppercase, lowercase, number and special character"
+                required
+            >
+            <small style="display:block;margin-top:6px;color:var(--text-3);font-size:0.78rem;">
+                8–72 characters · uppercase · lowercase · number · special character (!@#$...)
+            </small>
         </div>
+
         <button type="submit" class="btn btn-primary btn-full">Create account</button>
     </form>
+
     <p>Already have an account? <a href="/login">Log in</a></p>
 </div>
 {{end}}

@@ -79,7 +79,7 @@ func renderTemplate(w http.ResponseWriter, tmplName string, data interface{}) {
 
 // GetUserData fetches user information by ID. Returns nil for anonymous users.
 // Usage: user, err := GetUserData(userID); if err != nil { /* handle error */ }
-func GetUserData(userID int) (*User, error) {
+func getUserData(userID int) (*User, error) {
 	if userID == 0 {
 		return nil, nil // Anonymous user
 	}

@@ -75,10 +75,3 @@ func insertReaction(userID int, postID, commentID string, reactionType int) erro
 
 	return err
 }
-
-func nilIfEmpty(s string) interface{} {
-	if s == "" {
-		return nil
-	}
-	return s
-}
