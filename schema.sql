@@ -128,9 +128,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_comment_reaction
 ON reactions(user_id, comment_id)
 WHERE post_id IS NULL;
 
--- =========================
--- ⚡ TRIGGERS (TOGGLE LOGIC)
--- =========================
+-- TRIGGERS (TOGGLE LOGIC)
 
 CREATE TRIGGER IF NOT EXISTS toggle_post_reaction
 BEFORE INSERT ON reactions
@@ -173,3 +171,15 @@ BEGIN
     AND comment_id = NEW.comment_id
     AND post_id IS NULL;
 END;
+
+
+CREATE TRIGGER IF NOT EXISTS sessions_delete
+BEFORE INSERT ON sessions
+FOR EACH ROW
+BEGIN
+DELETE FROM sessions
+WHERE user_id = NEW.user_id;
+
+END;
+
+
