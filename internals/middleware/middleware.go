@@ -1,39 +1,18 @@
 package middleware
 
-import (
-	"forum/internals/auth"
-	"forum/internals/errors"
-	"net/http"
-)
+// ─── HTTP Middleware ────────────────────────────────────────────────────────
+// Middleware functions wrap http.HandlerFunc to add cross‑cutting behaviour.
+// The SPA currently only needs Method() – AuthMiddleware and Guest are kept
+// from the old multi‑page version in case you want to add protected routes.
 
-func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !auth.LoggedIn(r) {
-			errors.RenderError(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		// User is logged in → continue
-		next(w, r)
-	}
-}
+import "net/http"
 
-func Guest(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if auth.LoggedIn(r) {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		// User is NOT logged in → continue
-		next(w, r)
-	}
-}
-
+// Method returns a handler that rejects requests whose HTTP method does not
+// match the expected `method`.
 func Method(method string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Method != method {
-			// TODO RENDER ERROR
-			errors.RenderError(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
 		next(w, r)
