@@ -1,7 +1,6 @@
 package forum
 
 import (
-	"database/sql"
 	"strings"
 
 	"forum/internals/database"
@@ -23,102 +22,70 @@ type Post struct {
 	CommentsLen int
 }
 
+func GetPostCategories(postID int) []string {
+	rows, err := database.DB.Query(`
+		SELECT c.name FROM categories c
+		JOIN post_categories pc ON c.id = pc.category_id
+		WHERE pc.post_id = ?
+	`, postID)
+	if err != nil {
+		return []string{}
+	}
+	defer rows.Close()
+	var cats []string
+	for rows.Next() {
+		var name string
+		if rows.Scan(&name) == nil {
+			cats = append(cats, name)
+		}
+	}
+	return cats
+}
+
 // GetPosts retrieves posts with filtering and pagination.
 func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, commentedByUserID int, limit int, offset int) ([]Post, error) {
 	var query strings.Builder
 	var args []interface{}
 	var where []string
 
-	// BASE QUERY (NO ; AND NO GROUP BY HERE)
 	query.WriteString(`
-        SELECT 
-            p.id,
-            p.user_id,
-            u.username,
-            p.title,
-            p.content,
-            p.created_at,
+        SELECT p.id, p.user_id, u.username, p.title, p.content, p.created_at,
             COALESCE(re.type, 0) AS reacted_to,
-            COALESCE(likes.count, 0) AS likes,
-            COALESCE(dislikes.count, 0) AS dislikes,
-            GROUP_CONCAT(DISTINCT c.name) AS categories
-
+            (SELECT COUNT(*) FROM reactions WHERE post_id = p.id AND type = 1) AS likes,
+            (SELECT COUNT(*) FROM reactions WHERE post_id = p.id AND type = -1) AS dislikes
         FROM posts p
         JOIN users u ON p.user_id = u.id
-
-        LEFT JOIN reactions re
-            ON p.id = re.post_id AND re.user_id = ?
-
-        LEFT JOIN (
-            SELECT post_id, COUNT(*) as count
-            FROM reactions
-            WHERE type = 1 AND post_id IS NOT NULL
-            GROUP BY post_id
-        ) likes ON p.id = likes.post_id
-
-        LEFT JOIN (
-            SELECT post_id, COUNT(*) as count
-            FROM reactions
-            WHERE type = -1 AND post_id IS NOT NULL
-            GROUP BY post_id
-        ) dislikes ON p.id = dislikes.post_id
-
-        LEFT JOIN post_categories pc_all ON p.id = pc_all.post_id
-        LEFT JOIN categories c ON pc_all.category_id = c.id
+        LEFT JOIN reactions re ON p.id = re.post_id AND re.user_id = ?
     `)
 
-	// always bind userID
 	args = append(args, userID)
 
-	// FILTER: category
 	if categoryID > 0 {
-		query.WriteString(" JOIN post_categories pc_filter ON p.id = pc_filter.post_id")
-		where = append(where, "pc_filter.category_id = ?")
+		where = append(where, "p.id IN (SELECT post_id FROM post_categories WHERE category_id = ?)")
 		args = append(args, categoryID)
 	}
 
-	// FILTER: liked
 	if likedByUserID > 0 {
-		where = append(where, `
-            p.id IN (
-                SELECT post_id 
-                FROM reactions 
-                WHERE user_id = ? AND (type = 1 OR type = -1) AND post_id IS NOT NULL
-            )
-        `)
+		where = append(where, "p.id IN (SELECT post_id FROM reactions WHERE user_id = ?)")
 		args = append(args, likedByUserID)
 	}
 
-	// FILTER: author
 	if ofUserID > 0 {
 		where = append(where, "p.user_id = ?")
 		args = append(args, ofUserID)
 	}
 
-	// FILTER: commented
 	if commentedByUserID > 0 {
-		where = append(where, `
-            p.id IN (
-                SELECT post_id 
-                FROM comments 
-                WHERE user_id = ?
-            )
-        `)
+		where = append(where, "p.id IN (SELECT post_id FROM comments WHERE user_id = ?)")
 		args = append(args, commentedByUserID)
 	}
 
-	// WHERE
 	if len(where) > 0 {
 		query.WriteString(" WHERE " + strings.Join(where, " AND "))
 	}
 
-	//  GROUP BY (correct place)
-	query.WriteString(" GROUP BY p.id")
-
-	// ORDER
 	query.WriteString(" ORDER BY p.created_at DESC")
 
-	// PAGINATION
 	if limit > 0 {
 		query.WriteString(" LIMIT ?")
 		args = append(args, limit)
@@ -137,8 +104,6 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 	var posts []Post
 	for rows.Next() {
 		var p Post
-		var categoriesStr sql.NullString
-
 		if err := rows.Scan(
 			&p.PostID,
 			&p.UserID,
@@ -149,18 +114,12 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 			&p.ReactedTo,
 			&p.Likes,
 			&p.Dislikes,
-			&categoriesStr,
 		); err != nil {
 			return nil, err
 		}
 
 		p.CreatedAt = FormatDate(p.CreatedAt)
-
-		if categoriesStr.Valid && categoriesStr.String != "" {
-			p.Categories = strings.Split(categoriesStr.String, ",")
-		} else {
-			p.Categories = []string{}
-		}
+		p.Categories = GetPostCategories(p.PostID)
 
 		p.Comments, _ = GetCommentsByPost(userID, p.PostID)
 		p.CommentsLen = len(p.Comments)
@@ -178,18 +137,12 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUserID int) (int, error) {
 	var query strings.Builder
 	var args []interface{}
+	var where []string
 
-	query.WriteString(`
-        SELECT COUNT(DISTINCT p.id)
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
-    `)
-
-	where := []string{}
+	query.WriteString("SELECT COUNT(*) FROM posts p")
 
 	if categoryID > 0 {
-		query.WriteString(" JOIN post_categories pc ON p.id = pc.post_id")
-		where = append(where, "pc.category_id = ?")
+		where = append(where, "p.id IN (SELECT post_id FROM post_categories WHERE category_id = ?)")
 		args = append(args, categoryID)
 	}
 
@@ -199,8 +152,7 @@ func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUse
 	}
 
 	if likedByUserID > 0 {
-		query.WriteString(" JOIN reactions re ON p.id = re.post_id")
-		where = append(where, "re.user_id = ? AND re.type = 1")
+		where = append(where, "p.id IN (SELECT post_id FROM reactions WHERE user_id = ?)")
 		args = append(args, likedByUserID)
 	}
 

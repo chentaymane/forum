@@ -22,8 +22,8 @@ func CreateSession(userID int) (string, error) {
 	sessionID := u1.String()
 	expiresAt := time.Now().Add(24 * time.Hour) // Session valid for 24 hours
 
-	query := `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`
-	_, err = database.DB.Exec(query, sessionID, userID, expiresAt)
+	database.DB.Exec(`DELETE FROM sessions WHERE user_id = ?`, userID)
+	_, err = database.DB.Exec(`INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`, sessionID, userID, expiresAt)
 	if err != nil {
 		return "", fmt.Errorf("failed to create session: %w", err)
 	}

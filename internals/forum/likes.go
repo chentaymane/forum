@@ -62,6 +62,34 @@ func insertReaction(userID int, postID, commentID string, reactionType int) erro
 	if err != nil || !exists {
 		return ErrInvalidTarget
 	}
+
+	// toggle logic: same type = toggle off, opposite = replace
+	if postID != "" {
+		var existingType int
+		err = database.DB.QueryRow(
+			`SELECT type FROM reactions WHERE user_id = ? AND post_id = ? AND comment_id IS NULL`,
+			userID, postID,
+		).Scan(&existingType)
+		if err == nil {
+			database.DB.Exec(`DELETE FROM reactions WHERE user_id = ? AND post_id = ? AND comment_id IS NULL`, userID, postID)
+			if existingType == reactionType {
+				return nil
+			}
+		}
+	} else {
+		var existingType int
+		err = database.DB.QueryRow(
+			`SELECT type FROM reactions WHERE user_id = ? AND comment_id = ? AND post_id IS NULL`,
+			userID, commentID,
+		).Scan(&existingType)
+		if err == nil {
+			database.DB.Exec(`DELETE FROM reactions WHERE user_id = ? AND comment_id = ? AND post_id IS NULL`, userID, commentID)
+			if existingType == reactionType {
+				return nil
+			}
+		}
+	}
+
 	_, err = database.DB.Exec(
 		`INSERT INTO reactions (user_id, post_id, comment_id, type)
 		 VALUES (?, ?, ?, ?)`,

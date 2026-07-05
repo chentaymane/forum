@@ -1,10 +1,8 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"forum/internals/auth"
 	"forum/internals/database"
@@ -47,30 +45,14 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch the post with reaction state for the current user
 	var post forum.Post
-	var categoriesStr sql.NullString
 	err = database.DB.QueryRow(`
 		SELECT p.id, p.user_id, u.username, p.title, p.content, p.created_at,
-		       	COALESCE(re.type, 0) AS reacted_to,
-		       	COALESCE(likes.count, 0) AS likes,
-		       	COALESCE(dislikes.count, 0) AS dislikes,
-            	GROUP_CONCAT(DISTINCT c.name) AS categories
+			COALESCE(re.type, 0) AS reacted_to,
+			(SELECT COUNT(*) FROM reactions WHERE post_id = p.id AND type = 1) AS likes,
+			(SELECT COUNT(*) FROM reactions WHERE post_id = p.id AND type = -1) AS dislikes
 		FROM posts p
 		JOIN users u ON u.id = p.user_id
 		LEFT JOIN reactions re ON p.id = re.post_id AND re.user_id = ?
-		LEFT JOIN (
-		    SELECT post_id, COUNT(*) as count
-		    FROM reactions
-		    WHERE type = 1 AND post_id IS NOT NULL
-		    GROUP BY post_id
-		) likes ON p.id = likes.post_id
-		LEFT JOIN (
-		    SELECT post_id, COUNT(*) as count
-		    FROM reactions
-		    WHERE type = -1 AND post_id IS NOT NULL
-		    GROUP BY post_id
-		) dislikes ON p.id = dislikes.post_id
-		LEFT JOIN post_categories pc_all ON p.id = pc_all.post_id
-        LEFT JOIN categories c ON pc_all.category_id = c.id
 		WHERE p.id = ?
 		`,
 		userID, postID,
@@ -84,7 +66,6 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 		&post.ReactedTo,
 		&post.Likes,
 		&post.Dislikes,
-		&categoriesStr,
 	)
 	if err != nil {
 		errors.RenderError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -95,11 +76,7 @@ func PostDetails(w http.ResponseWriter, r *http.Request) {
 	post.CreatedAt = forum.FormatDate(post.CreatedAt)
 
 	// Fetch categories for this post
-	if categoriesStr.Valid && categoriesStr.String != "" {
-		post.Categories = strings.Split(categoriesStr.String, ",")
-	} else {
-		post.Categories = []string{}
-	}
+	post.Categories = forum.GetPostCategories(post.PostID)
 
 	// Fetch ALL comments (no 2-comment limit like the home feed)
 	post.Comments, _ = forum.GetCommentsByPost(userID, post.PostID)

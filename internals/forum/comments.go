@@ -1,7 +1,6 @@
 package forum
 
 import (
-	"database/sql"
 	"net/http"
 	"strconv"
 
@@ -67,37 +66,24 @@ func CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetCommentsByPost retrieves all comments for a specific post.
 func GetCommentsByPost(userID, postID int) ([]Comment, error) {
-	var rows *sql.Rows
-	var err error
-	var comments []Comment
 	query := `
-		SELECT 
-			c.id, c.post_id, c.user_id, u.username, c.content, c.created_at,
+		SELECT c.id, c.post_id, c.user_id, u.username, c.content, c.created_at,
 			COALESCE(r.type, 0) AS reacted_to,
-			COALESCE(rc.likes, 0) AS likes,
-			COALESCE(rc.dislikes, 0) AS dislikes
+			(SELECT COUNT(*) FROM reactions WHERE comment_id = c.id AND type = 1) AS likes,
+			(SELECT COUNT(*) FROM reactions WHERE comment_id = c.id AND type = -1) AS dislikes
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
-		LEFT JOIN reactions r 
-			ON r.comment_id = c.id AND r.user_id = ?
-		LEFT JOIN (
-			SELECT 
-				comment_id,
-				SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) AS likes,
-				SUM(CASE WHEN type = -1 THEN 1 ELSE 0 END) AS dislikes
-			FROM reactions
-			GROUP BY comment_id
-		) rc ON c.id = rc.comment_id
+		LEFT JOIN reactions r ON r.comment_id = c.id AND r.user_id = ?
 		WHERE c.post_id = ?
 		ORDER BY c.created_at ASC
 	`
-	rows, err = database.DB.Query(query, userID, postID)
+	rows, err := database.DB.Query(query, userID, postID)
 	if err != nil {
-		return comments, err
+		return nil, err
 	}
-
 	defer rows.Close()
 
+	var comments []Comment
 	for rows.Next() {
 		var c Comment
 		if err := rows.Scan(
