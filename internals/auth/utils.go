@@ -1,9 +1,15 @@
 package auth
 
-// ─── Input Validation ──────────────────────────────────────────────────────
-// These functions live in the auth package because they're primarily used
-// during registration and login, but they are pure string checks that could
-// go anywhere.
+// ─── Input Validation Utilities ────────────────────────────────────────────
+//
+// These functions validate raw user input. They are used during registration
+// and login to ensure data meets minimum requirements BEFORE it reaches the
+// database. The spa package has its own parallel validators — these live here
+// for use by the auth package itself if needed.
+//
+// SECURITY:
+// All validation happens server-side. The frontend may also validate, but
+// we never trust the client — attackers can bypass browser checks.
 
 import (
 	"strings"
@@ -11,7 +17,8 @@ import (
 )
 
 // isValidEmail does basic email validation.
-// It delegates to Go's mail.ParseAddress which handles the RFC 5322 rules.
+// Checks that the string contains "@" and "." — a simple but effective
+// first-pass filter. Full RFC 5322 validation is overkill for a forum.
 func isValidEmail(email string) bool {
 	email = strings.TrimSpace(email)
 	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
@@ -23,7 +30,9 @@ func isValidEmail(email string) bool {
 // isValidUserName checks that the username:
 //   - Is between 3 and 20 characters long
 //   - Starts with a letter
-//   - Contains only letters, digits, underscores and hyphens
+//   - Contains only letters, digits, underscores, and hyphens
+//
+// This prevents special characters that could cause issues in URLs or queries.
 func isValidUserName(username string) bool {
 	if len(username) < 3 || len(username) > 20 {
 		return false
@@ -41,7 +50,7 @@ func isValidUserName(username string) bool {
 }
 
 // isValidPassword enforces a strong password policy:
-//   - Minimum 8 characters, maximum 72 (bcrypt limit)
+//   - Minimum 8 characters, maximum 72 (bcrypt truncates at 72)
 //   - At least one uppercase letter
 //   - At least one lowercase letter
 //   - At least one digit

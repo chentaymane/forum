@@ -1,12 +1,21 @@
 package database
 
 // ─── Database Initialisation ────────────────────────────────────────────────
+//
 // This package owns the single *sql.DB connection pool used by the entire
-// application.  On startup it:
-//   1. Opens the SQLite file (or creates it).
-//   2. Reads and executes the schema.sql file to create tables.
-//   3. Seeds a few default categories (General, Technology, Art, Science).
-//   4. Runs a minimal migration to add profile columns if they don't exist.
+// application. On startup it:
+//   1. Opens the SQLite file (or creates it if it doesn't exist).
+//   2. Reads and executes schema.sql to create all tables.
+//   3. Seeds default categories (General, Technology, Art, Science).
+//   4. Runs migrations to add columns that were added after the initial schema.
+//
+// USAGE: Call InitDB() once at startup. Use database.DB everywhere else to
+// run queries.
+//
+// SECURITY:
+// - All SQL executed here is hardcoded — no user input reaches these queries.
+// - Foreign keys are enabled via PRAGMA (disabled by default in SQLite).
+// - The database file path can be overridden with the DB_PATH env var.
 
 import (
 	"database/sql"
@@ -18,12 +27,15 @@ import (
 )
 
 // DB is the shared database connection pool.
+// All packages access the database through this single connection.
 var DB *sql.DB
 
 // InitDB opens the database, loads the schema, seeds categories, and runs
-// any needed migrations.  Call this once at startup.
+// any needed migrations. Call this once at startup in main().
 func InitDB() error {
 	var err error
+
+	// Allow override via environment variable (useful for testing)
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = "./forum.db"
@@ -59,29 +71,36 @@ func InitDB() error {
 }
 
 // loadSchema reads schema.sql and executes all the CREATE TABLE statements.
+// The schema file path can be overridden with the SCHEMA_PATH env var.
 func loadSchema() error {
 	schema := os.Getenv("SCHEMA_PATH")
 	if schema == "" {
 		schema = "./schema.sql"
 	}
+
 	content, err := os.ReadFile(schema)
 	if err != nil {
 		return fmt.Errorf("failed to read schema file: %w", err)
 	}
 
-	// SQLite needs foreign key enforcement enabled per‑connection
+	// SQLite has foreign key enforcement DISABLED by default.
+	// We enable it per-connection so ON DELETE CASCADE works.
 	if _, err := DB.Exec(`PRAGMA foreign_keys = ON`); err != nil {
 		return err
 	}
+
 	_, err = DB.Exec(string(content))
 	return err
 }
 
 // seedCategories inserts the default categories if they don't already exist.
+// Uses INSERT OR IGNORE so it's safe to call every time (no duplicates).
 func seedCategories() error {
 	categories := []string{"General", "Technology", "Art", "Science"}
 	for _, name := range categories {
-		if _, err := DB.Exec("INSERT OR IGNORE INTO categories (name) VALUES (?)", name); err != nil {
+		if _, err := DB.Exec(
+			"INSERT OR IGNORE INTO categories (name) VALUES (?)", name,
+		); err != nil {
 			return err
 		}
 	}
@@ -89,8 +108,9 @@ func seedCategories() error {
 }
 
 // migrateSchema adds columns that were added after the initial schema.
-// When you run this project from scratch on a fresh database the columns
-// will already exist, so these ALTER TABLE statements are effectively no‑ops.
+// When you run this project from scratch on a fresh database, the columns
+// will already exist from schema.sql, so these ALTER TABLE statements are
+// effectively no-ops (the IF NOT EXISTS check prevents errors).
 func migrateSchema() error {
 	columns := []struct {
 		name string
@@ -110,13 +130,14 @@ func migrateSchema() error {
 			return err
 		}
 		if !has {
-			if _, err := DB.Exec(col.sql); err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+			if _, err := DB.Exec(col.sql); err != nil &&
+				!strings.Contains(err.Error(), "duplicate column name") {
 				return err
 			}
 		}
 	}
 
-	// Ensure private_messages table exists (may have been added later)
+	// Ensure private_messages table exists (added in a later version)
 	_, err := DB.Exec(`
 		CREATE TABLE IF NOT EXISTS private_messages (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,10 +153,13 @@ func migrateSchema() error {
 		return err
 	}
 
-	// Indexes for fast message lookups
+	// Create indexes for fast message lookups
+	// Without these, querying messages by sender/receiver would be slow
 	for _, idx := range []string{
-		`CREATE INDEX IF NOT EXISTS idx_private_messages_pair_time ON private_messages(sender_id, receiver_id, created_at)`,
-		`CREATE INDEX IF NOT EXISTS idx_private_messages_receiver_time ON private_messages(receiver_id, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_private_messages_pair_time
+		 ON private_messages(sender_id, receiver_id, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_private_messages_receiver_time
+		 ON private_messages(receiver_id, created_at)`,
 	} {
 		if _, err := DB.Exec(idx); err != nil {
 			return err
@@ -146,6 +170,10 @@ func migrateSchema() error {
 }
 
 // tableHasColumn checks whether `tableName` has a column called `columnName`.
+// Used by migrateSchema to safely add columns that may already exist.
+//
+// NOTE: The tableName is used in a string concatenation for PRAGMA.
+// This is safe because tableName is always a hardcoded constant in our code.
 func tableHasColumn(tableName, columnName string) (bool, error) {
 	rows, err := DB.Query("PRAGMA table_info(" + tableName + ")")
 	if err != nil {

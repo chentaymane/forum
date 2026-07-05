@@ -2,11 +2,16 @@ package forum
 
 // ─── Comment Model ─────────────────────────────────────────────────────────
 // Comment represents a single reply on a post.  Like Post, this internal
-// struct carries reaction data; the SPA converts it to APIComment for JSON.
+// struct carries reaction data; the SPA handler converts it to APIComment
+// for JSON serialization.
+//
+// The separation between forum.Comment and spa.APIComment is intentional:
+// the forum package deals with raw database rows (with side data like
+// reaction state), while the spa package decides exactly what to expose.
 
 import "forum/internals/database"
 
-// Comment is the database‑level representation.
+// Comment is the database-level representation including reaction data.
 type Comment struct {
 	CommentID  int
 	PostID     int
@@ -20,7 +25,13 @@ type Comment struct {
 }
 
 // GetCommentsByPost returns all comments for a given post, ordered oldest
-// first.  Includes the reaction state for the requesting user.
+// first (chronological order, same as any forum).  Includes the reaction
+// state for the requesting user so they can see their own like/dislike.
+//
+// WHY A SEPARATE FUNCTION?
+// Comments are loaded lazily — the feed only shows the preview; the full
+// comment list is fetched when the user opens a post. This keeps the feed
+// response lightweight.
 func GetCommentsByPost(userID, postID int) ([]Comment, error) {
 	query := `
 		SELECT c.id, c.post_id, c.user_id, COALESCE(u.nickname, u.username), c.content, c.created_at,

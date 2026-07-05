@@ -3,6 +3,11 @@ package forum
 // ─── Post Data & Queries ────────────────────────────────────────────────────
 // This file holds the Post struct and the two query functions that the SPA
 // handler layer calls to fetch posts from the database.
+//
+// The getPosts function is the most complex query in the project — it
+// supports filtering by category, user, liked-by-user, and commented-by-user,
+// with pagination. The query is built dynamically using a strings.Builder
+// to avoid duplicated conditional logic.
 
 import (
 	"strings"
@@ -11,8 +16,8 @@ import (
 )
 
 // Post is the internal representation of a forum post.
-// The SPA uses its own APIPost type for JSON – this struct is richer and
-// includes reaction counts + a few preview comments.
+// The SPA uses its own APIPost type for JSON — this struct is richer and
+// includes reaction counts plus a few preview comments.
 type Post struct {
 	PostID      int
 	UserID      int
@@ -29,6 +34,7 @@ type Post struct {
 }
 
 // GetPostCategories fetches the category names attached to a post.
+// Returns an empty slice (not nil) on error to simplify callers.
 func GetPostCategories(postID int) []string {
 	rows, err := database.DB.Query(`
 		SELECT c.name FROM categories c
@@ -54,13 +60,17 @@ func GetPostCategories(postID int) []string {
 // current user's reaction state if they are logged in.
 //
 // Parameters:
-//   - categoryID:      filter by category (0 = all)
-//   - ofUserID:        only posts by this user (0 = any)
-//   - userID:          the requesting user (for reaction state)
-//   - likedByUserID:   only posts liked by this user
-//   - commentedByUserID: only posts this user commented on
-//   - limit:           max rows (0 = unlimited)
-//   - offset:          pagination offset
+//   - categoryID:         filter by category (0 = all)
+//   - ofUserID:           only posts by this user (0 = any)
+//   - userID:             the requesting user (for reaction state)
+//   - likedByUserID:      only posts liked by this user
+//   - commentedByUserID:  only posts this user commented on
+//   - limit:              max rows (0 = unlimited)
+//   - offset:             pagination offset
+//
+// SECURITY: All filter values are passed as parameters, never concatenated
+// into the SQL string.  The only string concatenation is for WHERE clause
+// building with known-safe column names.
 func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, commentedByUserID int, limit int, offset int) ([]Post, error) {
 	var query strings.Builder
 	var args []any
@@ -77,6 +87,7 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 	`)
 	args = append(args, userID)
 
+	// Build WHERE clause based on provided filters
 	if categoryID > 0 {
 		where = append(where, "p.id IN (SELECT post_id FROM post_categories WHERE category_id = ?)")
 		args = append(args, categoryID)
@@ -128,7 +139,8 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 		p.CreatedAt = FormatDate(p.CreatedAt)
 		p.Categories = GetPostCategories(p.PostID)
 
-		// Attach a preview of the first two comments
+		// Attach a preview of the first two comments so the frontend can
+		// show them without an extra API call.
 		p.Comments, _ = GetCommentsByPost(userID, p.PostID)
 		p.CommentsLen = len(p.Comments)
 		if p.CommentsLen > 2 {
@@ -142,7 +154,10 @@ func GetPosts(categoryID int, ofUserID int, userID int, likedByUserID int, comme
 }
 
 // GetPostsCount returns the total number of posts that match the filters.
-// Used by the old paginated templates – the SPA currently ignores this.
+// Used by the old paginated templates — the SPA currently ignores this
+// but is kept for compatibility.
+//
+// The filter logic mirrors GetPosts above, but only returns COUNT(*).
 func GetPostsCount(categoryID int, userID int, likedByUserID int, commentedByUserID int) (int, error) {
 	var query strings.Builder
 	var args []any

@@ -801,7 +801,7 @@ select { cursor: pointer; }
 .chat-popup {
   position: fixed;
   right: 24px;
-  bottom: 90px;
+  bottom: 80px;
   z-index: 999;
   width: 370px;
   max-height: min(68vh, 540px);

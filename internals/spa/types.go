@@ -5,10 +5,14 @@ package spa
 // JavaScript frontend.  Every field has a json tag so the encoder uses the
 // correct lowercase names that the JS code expects.
 //
-// Note: "omitempty" fields are left out of the response when they are zero,
-// which saves a few bytes on the wire.
+// Convention:
+// - "omitempty" fields are left out of the response when they are zero,
+//   which saves a few bytes on the wire for common list responses.
+// - Timestamps are returned as formatted strings (e.g. "2 Jan 2006 · 15:04")
+//   ready for display, not ISO 8601 — the frontend never needs to parse them.
 
 // APIUser is the public profile returned after login/registration.
+// Sensitive fields like password hash are never included.
 type APIUser struct {
 	ID        int    `json:"id"`
 	Email     string `json:"email,omitempty"`
@@ -54,7 +58,7 @@ type APIPost struct {
 	Comments     []APIComment `json:"comments,omitempty"`
 }
 
-// ChatContact is the user card shown in the always‑visible sidebar.
+// ChatContact is the user card shown in the always-visible sidebar.
 // Ordered by last message time (most recent first, users with no messages
 // sorted alphabetically).
 type ChatContact struct {
@@ -66,7 +70,7 @@ type ChatContact struct {
 	LastMessageAt string `json:"last_message_at,omitempty"`
 }
 
-// ChatMessage is a single private message.
+// ChatMessage is a single private message exchanged between two users.
 type ChatMessage struct {
 	ID           int    `json:"id"`
 	SenderID     int    `json:"sender_id"`
