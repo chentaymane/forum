@@ -169,33 +169,37 @@
             <div id="posts-list" class="cards"></div>
           </section>
 
-          <!-- Post Detail (shown when a post is clicked) -->
-          <section id="post-detail-panel" class="panel detail hidden">
-            <div class="panel-header">
-              <div>
-                <h2 id="detail-title" class="panel-title">Post</h2>
-                <p id="detail-meta" class="detail-meta"></p>
-              </div>
-              <button id="close-detail" class="btn btn-ghost btn-sm" type="button">✕ Close</button>
-            </div>
-            <div id="detail-categories" class="chip-row"></div>
-            <div id="detail-content" class="detail-body"></div>
-            <div id="detail-reactions" class="reaction-bar"></div>
-
-            <div class="comment-section">
-              <h3 class="comment-heading">Comments</h3>
-              <form id="comment-form" class="inline-form">
-                <input name="content" placeholder="Write a comment…" maxlength="500" required />
-                <button class="btn btn-primary btn-sm" type="submit">Send</button>
-              </form>
-              <div id="comments-list" class="comment-list"></div>
-            </div>
-          </section>
-
         </main>
 
       </div>
     </section>
+
+    <!-- ─── Post Detail Modal ──────────────────────────────────────────── -->
+    <div id="post-modal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 id="detail-title">Post</h2>
+            <p id="detail-meta" class="modal-meta"></p>
+          </div>
+          <button id="close-detail" class="btn btn-ghost btn-sm" type="button">✕ Close</button>
+        </div>
+        <div class="modal-body">
+          <div id="detail-categories" class="modal-categories"></div>
+          <div id="detail-content" class="modal-content-text"></div>
+          <div id="detail-reactions" class="modal-actions"></div>
+
+          <div class="modal-comments">
+            <h3>Comments</h3>
+            <form id="comment-form" class="inline-form">
+              <input name="content" placeholder="Write a comment…" maxlength="500" required />
+              <button class="btn btn-primary btn-sm" type="submit">Send</button>
+            </form>
+            <div id="comments-list" class="modal-comment-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ─── Chat Button (floating, bottom‑right) ─────────────────────── -->
     <button id="chat-button" class="chat-button hidden" type="button" title="Messages">

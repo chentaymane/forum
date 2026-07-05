@@ -94,6 +94,7 @@ func SetSessionCookie(w http.ResponseWriter, sessionID string) {
 		Expires:  time.Now().Add(sessionDuration),
 		HttpOnly: true,
 		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 

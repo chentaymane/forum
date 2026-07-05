@@ -200,10 +200,11 @@ func (app *App) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:    auth.SESSION_COOKIE_NAME,
-		Value:   "",
-		Expires: time.Unix(0, 0),
-		Path:    "/",
+		Name:     auth.SESSION_COOKIE_NAME,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})

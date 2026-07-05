@@ -55,7 +55,7 @@ const el = {
   categoryFilter:   $("category-filter"),
   categoryList:     $("category-list"),
   refreshPosts:     $("refresh-posts"),
-  postDetailPanel:  $("post-detail-panel"),
+  postModal:        $("post-modal"),
   detailTitle:      $("detail-title"),
   detailMeta:       $("detail-meta"),
   detailCategories: $("detail-categories"),
@@ -296,10 +296,10 @@ function renderContacts() {
 // Shows the expanded view of a single post with its full comment thread.
 function renderPostDetail(post) {
   state.activePost = post;
-  el.postDetailPanel.classList.remove("hidden");
+  el.postModal.classList.remove("hidden");
   el.detailTitle.textContent = post.title;
   el.detailMeta.textContent = `${post.nickname} · ${post.created_at}`;
-  el.detailBody.textContent = post.content; // using detailBody ID
+  el.detailBody.textContent = post.content;
   el.detailCategories.innerHTML = formatCategories(post.categories || []);
   el.detailReactions.innerHTML = reactionButtons(post);
   el.commentsList.innerHTML = (post.comments || []).map((c) => `
@@ -314,10 +314,10 @@ function renderPostDetail(post) {
 }
 
 // --- hidePostDetail -------------------------------------------------------
-// Collapses the post detail panel.
+// Collapses the post detail modal.
 function hidePostDetail() {
   state.activePost = null;
-  el.postDetailPanel.classList.add("hidden");
+  el.postModal.classList.add("hidden");
   el.commentForm.reset();
 }
 
@@ -428,7 +428,7 @@ function goBackToList() {
   state.activeContact = null;
   state.messages = [];
   state.popupSearch = "";
-  el.popupSearch.value = "";
+  el.chatPopupSearch.value = "";
   el.chatConversation.classList.add("hidden");
   el.chatPopupList.classList.remove("hidden");
   renderPopupList();
@@ -833,8 +833,11 @@ function bindEvents() {
     }
   });
 
-  // ── Close detail ───────────────────────────────────────────────────
+  // ── Close detail (button or backdrop click) ────────────────────────
   el.closeDetail.addEventListener("click", hidePostDetail);
+  el.postModal.addEventListener("click", (e) => {
+    if (e.target === el.postModal) hidePostDetail();
+  });
 
   // ── React to post (detail panel) ───────────────────────────────────
   el.detailReactions.addEventListener("click", async (e) => {
@@ -901,21 +904,23 @@ function bindEvents() {
   el.chatConvBack.addEventListener("click", goBackToList);
 
   // ── Chat popup: tab switching (Recent / All Users) ────────────────
-  el.chatTabRecent.addEventListener("click", () => {
-    state.popupTab = "recent";
-    el.chatTabRecent.classList.add("active");
-    el.chatTabAll.classList.remove("active");
+  function switchTab(tab) {
+    if (state.activeContact) {
+      state.activeContact = null;
+      state.messages = [];
+      el.chatConversation.classList.add("hidden");
+      el.chatPopupList.classList.remove("hidden");
+    }
+    state.popupTab = tab;
+    el.chatTabRecent.classList.toggle("active", tab === "recent");
+    el.chatTabAll.classList.toggle("active", tab === "all");
     renderPopupList();
-  });
-  el.chatTabAll.addEventListener("click", () => {
-    state.popupTab = "all";
-    el.chatTabAll.classList.add("active");
-    el.chatTabRecent.classList.remove("active");
-    renderPopupList();
-  });
+  }
+  el.chatTabRecent.addEventListener("click", () => switchTab("recent"));
+  el.chatTabAll.addEventListener("click", () => switchTab("all"));
 
   // ── Chat popup: contact search (instant) ──────────────────────────
-  el.popupSearch.addEventListener("input", (e) => {
+  el.chatPopupSearch.addEventListener("input", (e) => {
     state.popupSearch = e.target.value;
     renderPopupList();
   });
