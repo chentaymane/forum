@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Time Forum</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- LOGIN / REGISTER (only page visible when logged out) -->
+    <div id="auth-view" class="view hidden">
+        <div class="auth-form">
+            <span class="auth-brand"><em>Forum</em></span>
+            <p id="auth-error" class="error hidden"></p>
+
+            <form id="login-form">
+                <h2>Welcome back</h2>
+                <div class="field">
+                    <label>Identity</label>
+                    <input name="identifier" placeholder="Nickname or e-mail" required>
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input name="password" type="password" placeholder="Your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Sign in</button>
+                <p class="switch">No account yet? <a href="#" id="show-register">Create one</a></p>
+            </form>
+
+            <form id="register-form" class="hidden">
+                <h2>Join the forum</h2>
+                <div class="field-row">
+                    <input name="nickname" placeholder="Nickname" required>
+                    <input name="age" type="number" min="1" max="120" placeholder="Age" required>
+                </div>
+                <div class="field-row">
+                    <input name="firstName" placeholder="First name" required>
+                    <input name="lastName" placeholder="Last name" required>
+                </div>
+                <select name="gender" aria-label="Gender" required>
+                    <option value="" disabled selected>Gender</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                </select>
+                <input name="email" type="email" placeholder="E-mail" required>
+                <input name="password" type="password" placeholder="Password (min 6 chars)" required>
+                <button type="submit" class="btn btn-primary btn-full">Register</button>
+                <p class="switch">Already a member? <a href="#" id="show-login">Sign in</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORUM (visible when logged in) -->
+    <div id="layout" class="hidden">
+        <header>
+            <nav>
+                <span class="brand"><em>Forum</em></span>
+                <span class="nav-right">
+                    <span id="nav-user" class="nav-welcome"></span>
+                    <button id="logout-btn" class="btn btn-ghost">Logout</button>
+                </span>
+            </nav>
+        </header>
+
+        <div class="content">
+            <main>
+                <!-- FEED -->
+                <div id="feed-view" class="view">
+                    <div class="posts-header">
+                        <h2>The <em>Feed</em></h2>
+                    </div>
+                    <form id="post-form" class="card compose">
+                        <h2>Start a <em>conversation</em></h2>
+                        <input name="title" placeholder="Give it a title..." required>
+                        <div id="post-cats" class="cats"></div>
+                        <textarea name="content" placeholder="What is on your mind?" required></textarea>
+                        <button type="submit" class="btn btn-primary">Publish</button>
+                    </form>
+
+                    <!-- FILTERS -->
+                    <div class="filter-bar">
+                        <button class="pill active" data-filter="">All</button>
+                        <button class="pill" data-filter="mine=1">My posts</button>
+                        <button class="pill" data-filter="commented=1">My comments</button>
+                        <button class="pill" data-filter="liked=1">Liked</button>
+                        <span class="filter-sep"></span>
+                        <span id="filter-cats"></span>
+                    </div>
+
+                    <div id="posts"></div>
+                </div>
+
+                <!-- POST DETAILS + COMMENTS -->
+                <div id="post-view" class="view hidden">
+                    <button id="back-btn" class="btn btn-ghost">&larr; Back to feed</button>
+                    <div id="post-detail" class="card detail"></div>
+                    <div class="card comments-card">
+                        <h3 class="section-title">Comments</h3>
+                        <div id="comments"></div>
+                        <form id="comment-form">
+                            <textarea name="content" placeholder="Write a comment..." required></textarea>
+                            <button type="submit" class="btn btn-primary">Comment</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+
+            <!-- USERS SIDEBAR (always visible) -->
+            <aside>
+                <h3 class="section-title">Messages</h3>
+                <ul id="user-list"></ul>
+            </aside>
+        </div>
+
+        <!-- PRIVATE CHAT BOX -->
+        <div id="chat-box" class="hidden">
+            <div class="chat-header">
+                <span id="chat-name"></span>
+                <button id="chat-close">&times;</button>
+            </div>
+            <div id="chat-messages"></div>
+            <form id="chat-form">
+                <input id="chat-input" placeholder="Type a message..." autocomplete="off">
+                <button type="submit" class="btn btn-primary">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/posts.js"></script>
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>
