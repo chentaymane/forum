@@ -1,0 +1,116 @@
+package forum
+
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
+
+	"rtforum/internals/auth"
+	"rtforum/internals/database"
+)
+
+// PostsHandler lists posts (GET) or creates a post (POST).
+func PostsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getPosts(w, r)
+	case http.MethodPost:
+		createPost(w, r)
+	default:
+		auth.Error(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+// getPosts returns the feed, newest first, with optional filters:
+// ?category=<id>, ?mine=1, ?commented=1, ?liked=1
+func getPosts(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserID(r)
+	q := r.URL.Query()
+
+	// The base query also computes, per post: its category names, its like and
+	// dislike counts, how the current user reacted, and its comment count.
+	query := `
+		SELECT p.id, u.nickname, p.title, p.content, substr(p.created_at, 1, 16),
+			COALESCE((SELECT GROUP_CONCAT(c.name, ', ') FROM categories c
+				JOIN post_categories pc ON pc.category_id = c.id
+				WHERE pc.post_id = p.id), ''),
+			(SELECT COUNT(*) FROM reactions WHERE post_id = p.id AND type = 1),
+			(SELECT COUNT(*) FROM reactions WHERE post_id = p.id AND type = -1),
+			COALESCE((SELECT type FROM reactions WHERE post_id = p.id AND user_id = ?), 0),
+			(SELECT COUNT(*) FROM comments WHERE post_id = p.id)
+		FROM posts p
+		JOIN users u ON u.id = p.user_id`
+	args := []any{userID}
+	var where []string
+
+	// Build the WHERE clause from whichever filters are present.
+	if q.Get("category") != "" {
+		where = append(where, "p.id IN (SELECT post_id FROM post_categories WHERE category_id = ?)")
+		args = append(args, q.Get("category"))
+	}
+	if q.Get("mine") == "1" {
+		where = append(where, "p.user_id = ?")
+		args = append(args, userID)
+	}
+	if q.Get("commented") == "1" {
+		where = append(where, "p.id IN (SELECT post_id FROM comments WHERE user_id = ?)")
+		args = append(args, userID)
+	}
+	if q.Get("liked") == "1" {
+		where = append(where, "p.id IN (SELECT post_id FROM reactions WHERE user_id = ? AND type = 1)")
+		args = append(args, userID)
+	}
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+	query += " ORDER BY p.id DESC"
+
+	rows, err := database.DB.Query(query, args...)
+	if err != nil {
+		auth.Error(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer rows.Close()
+
+	posts := []Post{}
+	for rows.Next() {
+		var p Post
+		if rows.Scan(&p.ID, &p.Nickname, &p.Title, &p.Content, &p.Date,
+			&p.Categories, &p.Likes, &p.Dislikes, &p.ReactedTo, &p.Comments) == nil {
+			posts = append(posts, p)
+		}
+	}
+	auth.JSON(w, http.StatusOK, posts)
+}
+
+// createPost inserts a new post together with its categories.
+func createPost(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Title      string `json:"title"`
+		Content    string `json:"content"`
+		Categories []int  `json:"categories"`
+	}
+	if json.NewDecoder(r.Body).Decode(&in) != nil {
+		auth.Error(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+	in.Title = strings.TrimSpace(in.Title)
+	in.Content = strings.TrimSpace(in.Content)
+	if in.Title == "" || in.Content == "" {
+		auth.Error(w, http.StatusBadRequest, "title and content are required")
+		return
+	}
+
+	res, err := database.DB.Exec(`INSERT INTO posts (user_id, title, content) VALUES (?, ?, ?)`,
+		auth.UserID(r), in.Title, in.Content)
+	if err != nil {
+		auth.Error(w, http.StatusInternalServerError, "failed to create post")
+		return
+	}
+	// Link the post to each selected category.
+	postID, _ := res.LastInsertId()
+	for _, catID := range in.Categories {
+		database.DB.Exec(`INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`, postID, catID)
+	}
+	auth.JSON(w, http.StatusOK, map[string]any{"id": postID})
+}
