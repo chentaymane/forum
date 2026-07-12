@@ -3,6 +3,7 @@ package forum
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"rtforum/internals/auth"
@@ -21,8 +22,9 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getPosts returns the feed, newest first, with optional filters:
-// ?category=<id>, ?mine=1, ?commented=1, ?liked=1
+// getPosts returns the feed 10 posts at a time, newest first, with optional
+// filters: ?category=<id>, ?mine=1, ?commented=1, ?liked=1.
+// ?offset=<n> is how many posts the client already loaded.
 func getPosts(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserID(r)
 	q := r.URL.Query()
@@ -63,7 +65,12 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += " ORDER BY p.id DESC"
+	offset, _ := strconv.Atoi(q.Get("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+	query += " ORDER BY p.id DESC LIMIT 10 OFFSET ?"
+	args = append(args, offset)
 
 	rows, err := database.DB.Query(query, args...)
 	if err != nil {
@@ -98,6 +105,10 @@ func createPost(w http.ResponseWriter, r *http.Request) {
 	in.Content = strings.TrimSpace(in.Content)
 	if in.Title == "" || in.Content == "" {
 		auth.Error(w, http.StatusBadRequest, "title and content are required")
+		return
+	}
+	if len(in.Title) > auth.MaxTitleLen || len(in.Content) > auth.MaxContentLen {
+		auth.Error(w, http.StatusBadRequest, "title or content too long")
 		return
 	}
 

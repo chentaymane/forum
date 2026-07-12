@@ -61,7 +61,7 @@ document.getElementById("register-form").onsubmit = async (e) => {
 
 // Logout works from any view since the navbar is always there
 document.getElementById("logout-btn").onclick = async () => {
-    await api("/api/logout", { method: "POST" });
+    try { await api("/api/logout", { method: "POST" }); } catch {}
     closeChatEverything();
     me = null;
     showView("auth");

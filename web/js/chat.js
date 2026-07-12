@@ -1,14 +1,17 @@
 // Private messages: user list, websocket, chat box with paginated history.
 
 let ws = null;
-let online = new Set(); // ids of online users
-let unread = new Set(); // ids of users with unseen messages
-let openChatId = 0;     // id of the user we are chatting with
-let loaded = 0;         // number of messages loaded in the open chat
+let online = new Set();   // ids of online users
+let unread = new Set();   // ids of users with unseen messages
+let openChatId = 0;       // id of the user we are chatting with
+let loaded = 0;           // number of messages loaded in the open chat
+let historyDone = false;  // true when the whole conversation is loaded
+let loadingMsgs = false;  // true while a history request is in flight
 
 // initChat connects the websocket and loads the user list.
 function initChat() {
-    ws = new WebSocket("ws://" + location.host + "/ws");
+    const proto = location.protocol === "https:" ? "wss://" : "ws://";
+    ws = new WebSocket(proto + location.host + "/ws");
     ws.onmessage = (e) => {
         const msg = JSON.parse(e.data);
         if (msg.type === "online") {
@@ -62,6 +65,8 @@ function renderMsg(m) {
 // openChat opens the chat box and loads the last 10 messages.
 async function openChat(id, nickname) {
     openChatId = id;
+    loaded = 0;
+    historyDone = false;
     unread.delete(id);
     loadUsers();
 
@@ -71,31 +76,41 @@ async function openChat(id, nickname) {
     box.innerHTML = "";
 
     const msgs = await api(`/api/messages?with=${id}&offset=0`);
+    if (openChatId !== id) return; // user already switched to another chat
     loaded = msgs.length;
+    if (msgs.length < 10) historyDone = true;
     msgs.forEach((m) => box.appendChild(renderMsg(m)));
     box.scrollTop = box.scrollHeight;
     document.getElementById("chat-input").focus();
 }
 
-// loadMore prepends 10 older messages, keeping the scroll position.
+// loadMore prepends the next 10 older messages, keeping the scroll position.
 async function loadMore() {
-    if (!openChatId) return;
-    const box = document.getElementById("chat-messages");
-    const more = await api(`/api/messages?with=${openChatId}&offset=${loaded}`);
-    if (!more.length) return;
-    loaded += more.length;
+    if (!openChatId || loadingMsgs || historyDone) return;
+    loadingMsgs = true;
+    const id = openChatId;
+    try {
+        const more = await api(`/api/messages?with=${id}&offset=${loaded}`);
+        if (openChatId !== id) return; // chat switched while loading
+        if (more.length < 10) historyDone = true;
+        if (!more.length) return;
+        loaded += more.length;
 
-    const oldHeight = box.scrollHeight;
-    for (let i = more.length - 1; i >= 0; i--) box.prepend(renderMsg(more[i]));
-    box.scrollTop = box.scrollHeight - oldHeight;
+        const box = document.getElementById("chat-messages");
+        const oldHeight = box.scrollHeight;
+        for (let i = more.length - 1; i >= 0; i--) box.prepend(renderMsg(more[i]));
+        box.scrollTop = box.scrollHeight - oldHeight;
+    } finally {
+        loadingMsgs = false;
+    }
 }
 
 // Throttled scroll: ask for older messages when reaching the top.
 document.getElementById("chat-messages").addEventListener(
     "scroll",
     throttle(() => {
-        if (document.getElementById("chat-messages").scrollTop === 0) loadMore();
-    }, 1000)
+        if (document.getElementById("chat-messages").scrollTop <= 20) loadMore();
+    }, 500)
 );
 
 // Send a message through the websocket.

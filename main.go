@@ -28,17 +28,17 @@ func main() {
 		http.ServeFile(w, r, "./web/index.html")
 	})
 
-	// Auth API
-	http.HandleFunc("/api/register", auth.RegisterHandler)
-	http.HandleFunc("/api/login", auth.LoginHandler)
+	// Auth API (MaxBody caps the size of every request body)
+	http.HandleFunc("/api/register", auth.MaxBody(auth.RegisterHandler))
+	http.HandleFunc("/api/login", auth.MaxBody(auth.LoginHandler))
 	http.HandleFunc("/api/logout", auth.LogoutHandler)
 	http.HandleFunc("/api/me", auth.MeHandler)
 
 	// Forum API (protected)
 	http.HandleFunc("/api/categories", auth.Protect(forum.GetCategories))
-	http.HandleFunc("/api/posts", auth.Protect(forum.PostsHandler))
-	http.HandleFunc("/api/comments", auth.Protect(forum.CommentsHandler))
-	http.HandleFunc("/api/reactions", auth.Protect(forum.ReactionsHandler))
+	http.HandleFunc("/api/posts", auth.Protect(auth.MaxBody(forum.PostsHandler)))
+	http.HandleFunc("/api/comments", auth.Protect(auth.MaxBody(forum.CommentsHandler)))
+	http.HandleFunc("/api/reactions", auth.Protect(auth.MaxBody(forum.ReactionsHandler)))
 
 	// Chat API + Websocket (protected)
 	http.HandleFunc("/api/users", auth.Protect(chat.GetUsers))

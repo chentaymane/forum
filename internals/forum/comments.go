@@ -66,6 +66,10 @@ func createComment(w http.ResponseWriter, r *http.Request) {
 		auth.Error(w, http.StatusBadRequest, "comment is empty")
 		return
 	}
+	if len(in.Content) > auth.MaxCommentLen {
+		auth.Error(w, http.StatusBadRequest, "comment too long")
+		return
+	}
 
 	_, err := database.DB.Exec(`INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)`,
 		in.PostID, auth.UserID(r), in.Content)

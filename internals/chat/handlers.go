@@ -58,6 +58,13 @@ func GetMessages(w http.ResponseWriter, r *http.Request) {
 	me := auth.UserID(r)
 	with, _ := strconv.Atoi(r.URL.Query().Get("with"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	if with < 1 {
+		auth.Error(w, http.StatusBadRequest, "invalid user")
+		return
+	}
+	if offset < 0 {
+		offset = 0
+	}
 
 	// Fetch the newest 10 after the offset...
 	rows, err := database.DB.Query(`

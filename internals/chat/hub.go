@@ -2,6 +2,8 @@ package chat
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,8 +13,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// upgrader turns an HTTP request into a websocket connection.
-var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+// upgrader turns an HTTP request into a websocket connection. Only pages
+// served by this host may connect (blocks cross-site websocket hijacking).
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		u, err := url.Parse(origin)
+		return err == nil && u.Host == r.Host
+	},
+}
 
 // clients holds every open connection per user (a user can be on several tabs).
 // mu guards it because connections are added/removed from many goroutines.
@@ -46,6 +58,8 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	// Drop the connection if the client sends an oversized frame.
+	conn.SetReadLimit(2048)
 
 	// Register the connection and tell everyone who is online.
 	mu.Lock()
@@ -59,7 +73,9 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 		if conn.ReadJSON(&msg) != nil {
 			break
 		}
-		if msg.Type == "message" && msg.To > 0 && msg.To != userID && msg.Content != "" {
+		msg.Content = strings.TrimSpace(msg.Content)
+		if msg.Type == "message" && msg.To > 0 && msg.To != userID &&
+			msg.Content != "" && len(msg.Content) <= auth.MaxMessageLen {
 			deliver(userID, nickname, msg)
 		}
 	}

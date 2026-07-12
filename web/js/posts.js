@@ -2,7 +2,9 @@
 
 let posts = [];
 let currentPostId = 0;
-let filter = ""; // active feed filter, e.g. "mine=1" or "category=2"
+let filter = "";           // active feed filter, e.g. "mine=1" or "category=2"
+let postsDone = false;     // true when the server has no more posts
+let loadingPosts = false;  // true while a page request is in flight
 
 const ICON_UP = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>`;
 const ICON_DOWN = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>`;
@@ -75,30 +77,58 @@ async function react(event, target, id, type) {
     }
 }
 
-// loadPosts renders the feed with the active filter.
-async function loadPosts() {
-    posts = await api("/api/posts" + (filter ? "?" + filter : ""));
-    const div = document.getElementById("posts");
-    div.innerHTML = posts.length ? "" : `<p class="empty">Nothing here yet — write the first post.</p>`;
-    posts.forEach((p) => {
-        const card = document.createElement("article");
-        card.className = "card post-card";
-        card.innerHTML = `
-            <div class="post-meta">
-                <span class="username">${esc(p.nickname)}</span>
-                <span class="date">${p.date}</span>
-                ${catPills(p.categories)}
-            </div>
-            <h3 class="post-title">${esc(p.title)}</h3>
-            <p class="post-excerpt">${esc(p.content)}</p>
-            <div class="post-actions">
-                ${reactions("post", p)}
-                <span class="action-stat">${p.comments} comment${p.comments === 1 ? "" : "s"} &rarr;</span>
-            </div>`;
-        card.onclick = () => openPost(p.id);
-        div.appendChild(card);
-    });
+// renderPostCard builds one feed card.
+function renderPostCard(p) {
+    const card = document.createElement("article");
+    card.className = "card post-card";
+    card.innerHTML = `
+        <div class="post-meta">
+            <span class="username">${esc(p.nickname)}</span>
+            <span class="date">${p.date}</span>
+            ${catPills(p.categories)}
+        </div>
+        <h3 class="post-title">${esc(p.title)}</h3>
+        <p class="post-excerpt">${esc(p.content)}</p>
+        <div class="post-actions">
+            ${reactions("post", p)}
+            <span class="action-stat">${p.comments} comment${p.comments === 1 ? "" : "s"} &rarr;</span>
+        </div>`;
+    card.onclick = () => openPost(p.id);
+    return card;
 }
+
+// loadPosts restarts the feed with the active filter (first 10 posts).
+async function loadPosts() {
+    posts = [];
+    postsDone = false;
+    document.getElementById("posts").innerHTML = "";
+    await loadMorePosts();
+    if (!posts.length) {
+        document.getElementById("posts").innerHTML =
+            `<p class="empty">Nothing here yet — write the first post.</p>`;
+    }
+}
+
+// loadMorePosts appends the next 10 posts (called by loadPosts and on scroll).
+async function loadMorePosts() {
+    if (postsDone || loadingPosts) return;
+    loadingPosts = true;
+    try {
+        const page = await api(`/api/posts?offset=${posts.length}` + (filter ? "&" + filter : ""));
+        if (page.length < 10) postsDone = true;
+        posts = posts.concat(page);
+        const div = document.getElementById("posts");
+        page.forEach((p) => div.appendChild(renderPostCard(p)));
+    } finally {
+        loadingPosts = false;
+    }
+}
+
+// Throttled infinite scroll: fetch the next page when near the bottom of the feed.
+window.addEventListener("scroll", throttle(() => {
+    if (!me || document.getElementById("feed-view").classList.contains("hidden")) return;
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) loadMorePosts();
+}, 300));
 
 // renderPostDetail fills the detail card of the current post.
 function renderPostDetail() {
@@ -162,7 +192,9 @@ document.getElementById("comment-form").onsubmit = async (e) => {
     const f = e.target;
     await api("/api/comments", post({ postId: currentPostId, content: f.content.value }));
     f.reset();
-    await loadPosts(); // refresh the comment counter
+    // Bump the cached counter (the feed is redrawn when going back anyway).
+    const p = posts.find((x) => x.id === currentPostId);
+    if (p) p.comments++;
     loadComments();
 };
 

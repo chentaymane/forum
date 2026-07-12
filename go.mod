@@ -3,7 +3,6 @@ module rtforum
 go 1.25.0
 
 require (
-	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/crypto v0.48.0
 	modernc.org/sqlite v1.53.0

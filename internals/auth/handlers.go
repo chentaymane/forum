@@ -34,10 +34,13 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	in.FirstName = strings.TrimSpace(in.FirstName)
 	in.LastName = strings.TrimSpace(in.LastName)
 
-	// Validate all fields before touching the database.
-	if _, err := mail.ParseAddress(in.Email); err != nil || in.Nickname == "" ||
-		in.FirstName == "" || in.LastName == "" || in.Gender == "" ||
-		in.Age < 1 || in.Age > 120 || len(in.Password) < 6 {
+	// Validate all fields (presence and size) before touching the database.
+	if _, err := mail.ParseAddress(in.Email); err != nil || len(in.Email) > MaxEmailLen ||
+		in.Nickname == "" || len(in.Nickname) > MaxNameLen ||
+		in.FirstName == "" || len(in.FirstName) > MaxNameLen ||
+		in.LastName == "" || len(in.LastName) > MaxNameLen ||
+		in.Gender == "" || in.Age < 1 || in.Age > 120 ||
+		len(in.Password) < 6 || len(in.Password) > MaxPasswordLen {
 		Error(w, http.StatusBadRequest, "invalid input")
 		return
 	}
@@ -111,6 +114,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 	})
 	JSON(w, http.StatusOK, map[string]string{"status": "ok"})

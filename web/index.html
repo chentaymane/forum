@@ -18,11 +18,11 @@
                 <h2>Welcome back</h2>
                 <div class="field">
                     <label>Identity</label>
-                    <input name="identifier" placeholder="Nickname or e-mail" required>
+                    <input name="identifier" placeholder="Nickname or e-mail" maxlength="100" required>
                 </div>
                 <div class="field">
                     <label>Password</label>
-                    <input name="password" type="password" placeholder="Your password" required>
+                    <input name="password" type="password" placeholder="Your password" maxlength="72" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-full">Sign in</button>
                 <p class="switch">No account yet? <a href="#" id="show-register">Create one</a></p>
@@ -31,12 +31,12 @@
             <form id="register-form" class="hidden">
                 <h2>Join the forum</h2>
                 <div class="field-row">
-                    <input name="nickname" placeholder="Nickname" required>
+                    <input name="nickname" placeholder="Nickname" maxlength="30" required>
                     <input name="age" type="number" min="1" max="120" placeholder="Age" required>
                 </div>
                 <div class="field-row">
-                    <input name="firstName" placeholder="First name" required>
-                    <input name="lastName" placeholder="Last name" required>
+                    <input name="firstName" placeholder="First name" maxlength="30" required>
+                    <input name="lastName" placeholder="Last name" maxlength="30" required>
                 </div>
                 <select name="gender" aria-label="Gender" required>
                     <option value="" disabled selected>Gender</option>
@@ -44,8 +44,8 @@
                     <option>Female</option>
                     <option>Other</option>
                 </select>
-                <input name="email" type="email" placeholder="E-mail" required>
-                <input name="password" type="password" placeholder="Password (min 6 chars)" required>
+                <input name="email" type="email" placeholder="E-mail" maxlength="100" required>
+                <input name="password" type="password" placeholder="Password (min 6 chars)" minlength="6" maxlength="72" required>
                 <button type="submit" class="btn btn-primary btn-full">Register</button>
                 <p class="switch">Already a member? <a href="#" id="show-login">Sign in</a></p>
             </form>
@@ -73,9 +73,9 @@
                     </div>
                     <form id="post-form" class="card compose">
                         <h2>Start a <em>conversation</em></h2>
-                        <input name="title" placeholder="Give it a title..." required>
+                        <input name="title" placeholder="Give it a title..." maxlength="100" required>
                         <div id="post-cats" class="cats"></div>
-                        <textarea name="content" placeholder="What is on your mind?" required></textarea>
+                        <textarea name="content" placeholder="What is on your mind?" maxlength="2000" required></textarea>
                         <button type="submit" class="btn btn-primary">Publish</button>
                     </form>
 
@@ -100,7 +100,7 @@
                         <h3 class="section-title">Comments</h3>
                         <div id="comments"></div>
                         <form id="comment-form">
-                            <textarea name="content" placeholder="Write a comment..." required></textarea>
+                            <textarea name="content" placeholder="Write a comment..." maxlength="1000" required></textarea>
                             <button type="submit" class="btn btn-primary">Comment</button>
                         </form>
                     </div>
@@ -122,7 +122,7 @@
             </div>
             <div id="chat-messages"></div>
             <form id="chat-form">
-                <input id="chat-input" placeholder="Type a message..." autocomplete="off">
+                <input id="chat-input" placeholder="Type a message..." maxlength="500" autocomplete="off">
                 <button type="submit" class="btn btn-primary">Send</button>
             </form>
         </div>
