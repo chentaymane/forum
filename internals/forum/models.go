@@ -9,6 +9,7 @@ type Category struct {
 // Post is a forum thread shown in the feed.
 type Post struct {
 	ID         int    `json:"id"`
+	UserID     int    `json:"userId"`
 	Nickname   string `json:"nickname"`
 	Title      string `json:"title"`
 	Content    string `json:"content"`
@@ -23,6 +24,7 @@ type Post struct {
 // Comment is a reply attached to a post.
 type Comment struct {
 	ID        int    `json:"id"`
+	UserID    int    `json:"userId"`
 	Nickname  string `json:"nickname"`
 	Content   string `json:"content"`
 	Date      string `json:"date"`

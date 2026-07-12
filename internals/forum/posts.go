@@ -2,6 +2,7 @@ package forum
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,13 +11,25 @@ import (
 	"rtforum/internals/database"
 )
 
-// PostsHandler lists posts (GET) or creates a post (POST).
+// PostsHandler lists posts (GET), creates a post (POST), or deletes one (POST with action=delete).
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		getPosts(w, r)
 	case http.MethodPost:
-		createPost(w, r)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			auth.Error(w, http.StatusBadRequest, "invalid request")
+			return
+		}
+		var probe struct {
+			Action string `json:"action"`
+		}
+		if json.Unmarshal(body, &probe) == nil && probe.Action == "delete" {
+			deletePost(w, r, body)
+			return
+		}
+		createPostFromBody(w, r, body)
 	default:
 		auth.Error(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -32,7 +45,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	// The base query also computes, per post: its category names, its like and
 	// dislike counts, how the current user reacted, and its comment count.
 	query := `
-		SELECT p.id, u.nickname, p.title, p.content, substr(p.created_at, 1, 16),
+		SELECT p.id, p.user_id, u.nickname, p.title, p.content, substr(p.created_at, 1, 16),
 			COALESCE((SELECT GROUP_CONCAT(c.name, ', ') FROM categories c
 				JOIN post_categories pc ON pc.category_id = c.id
 				WHERE pc.post_id = p.id), ''),
@@ -82,7 +95,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	posts := []Post{}
 	for rows.Next() {
 		var p Post
-		if rows.Scan(&p.ID, &p.Nickname, &p.Title, &p.Content, &p.Date,
+		if rows.Scan(&p.ID, &p.UserID, &p.Nickname, &p.Title, &p.Content, &p.Date,
 			&p.Categories, &p.Likes, &p.Dislikes, &p.ReactedTo, &p.Comments) == nil {
 			posts = append(posts, p)
 		}
@@ -90,14 +103,14 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	auth.JSON(w, http.StatusOK, posts)
 }
 
-// createPost inserts a new post together with its categories.
-func createPost(w http.ResponseWriter, r *http.Request) {
+// createPostFromBody inserts a new post together with its categories.
+func createPostFromBody(w http.ResponseWriter, r *http.Request, body []byte) {
 	var in struct {
 		Title      string `json:"title"`
 		Content    string `json:"content"`
 		Categories []int  `json:"categories"`
 	}
-	if json.NewDecoder(r.Body).Decode(&in) != nil {
+	if json.Unmarshal(body, &in) != nil {
 		auth.Error(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -120,8 +133,39 @@ func createPost(w http.ResponseWriter, r *http.Request) {
 	}
 	// Link the post to each selected category.
 	postID, _ := res.LastInsertId()
-	for _, catID := range in.Categories {
-		database.DB.Exec(`INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`, postID, catID)
+	if len(in.Categories) == 0 {
+		// Default to "General" when no categories are selected.
+		var generalID int
+		if err := database.DB.QueryRow(`SELECT id FROM categories WHERE name = 'General'`).Scan(&generalID); err == nil {
+			database.DB.Exec(`INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`, postID, generalID)
+		}
+	} else {
+		for _, catID := range in.Categories {
+			database.DB.Exec(`INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`, postID, catID)
+		}
 	}
 	auth.JSON(w, http.StatusOK, map[string]any{"id": postID})
+}
+
+// deletePost removes a post if the requester is its owner.
+func deletePost(w http.ResponseWriter, r *http.Request, body []byte) {
+	var in struct {
+		ID int `json:"id"`
+	}
+	if json.Unmarshal(body, &in) != nil || in.ID < 1 {
+		auth.Error(w, http.StatusBadRequest, "invalid post id")
+		return
+	}
+	userID := auth.UserID(r)
+	var ownerID int
+	if err := database.DB.QueryRow(`SELECT user_id FROM posts WHERE id = ?`, in.ID).Scan(&ownerID); err != nil {
+		auth.Error(w, http.StatusNotFound, "post not found")
+		return
+	}
+	if ownerID != userID {
+		auth.Error(w, http.StatusForbidden, "you can only delete your own posts")
+		return
+	}
+	database.DB.Exec(`DELETE FROM posts WHERE id = ?`, in.ID)
+	auth.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

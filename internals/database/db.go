@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // DB is the shared database handle used across the whole app.
@@ -18,7 +18,7 @@ func InitDB() error {
 	// rejects bad ids, busy_timeout waits instead of failing when two
 	// requests write at the same time.
 	var err error
-	DB, err = sql.Open("sqlite", "./forum.db?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)")
+	DB, err = sql.Open("sqlite3", "./forum.db?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)")
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}

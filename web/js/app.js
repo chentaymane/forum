@@ -26,6 +26,27 @@ function post(data) {
     };
 }
 
+// confirm shows a modal and returns true if the user clicks Confirm.
+function confirmAction(msg) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById("modal-overlay");
+        document.getElementById("modal-msg").textContent = msg;
+        overlay.classList.remove("hidden");
+        const yes = () => { cleanup(); resolve(true); };
+        const no  = () => { cleanup(); resolve(false); };
+        const cleanup = () => {
+            overlay.classList.add("hidden");
+            document.getElementById("modal-confirm").removeEventListener("click", yes);
+            document.getElementById("modal-cancel").removeEventListener("click", no);
+            overlay.removeEventListener("click", backdrop);
+        };
+        const backdrop = (e) => { if (e.target === overlay) no(); };
+        document.getElementById("modal-confirm").addEventListener("click", yes);
+        document.getElementById("modal-cancel").addEventListener("click", no);
+        overlay.addEventListener("click", backdrop);
+    });
+}
+
 // esc escapes HTML to avoid injection.
 function esc(s) {
     const d = document.createElement("div");

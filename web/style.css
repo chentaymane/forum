@@ -131,6 +131,29 @@ body {
     box-shadow: 0 4px 12px rgba(192,57,43,0.25);
 }
 
+.btn-delete { background: var(--surface-2); color: var(--dislike); border-color: var(--border); margin-left: auto; }
+.btn-delete:hover {
+    background: var(--dislike-bg); border-color: #f1948a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(192,57,43,0.12);
+}
+
+/* ── MODAL ─────────────────────────────────────────── */
+.modal-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(17,45,78,0.4);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeUp 0.2s ease both;
+}
+.modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-xl); padding: 2rem;
+    box-shadow: var(--shadow-xl); width: 360px; text-align: center;
+}
+.modal p { font-size: 15px; color: var(--text); margin-bottom: 1.25rem; line-height: 1.6; }
+.modal-actions { display: flex; gap: 10px; justify-content: center; }
+
 /* ── INPUTS ───────────────────────────────────────── */
 input, textarea, select {
     width: 100%;
