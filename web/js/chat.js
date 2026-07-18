@@ -116,6 +116,10 @@ document.getElementById("chat-messages").addEventListener(
 // Send a message through the websocket.
 document.getElementById("chat-form").onsubmit = (e) => {
     e.preventDefault();
+    if (me && getCookie("rtf_check") !== expectedToken) {
+        logoutLocal();
+        return;
+    }
     const input = document.getElementById("chat-input");
     const content = input.value.trim();
     if (!content || !openChatId || !ws) return;

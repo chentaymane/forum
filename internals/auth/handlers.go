@@ -117,6 +117,14 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     CHECK_COOKIE_NAME,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: false,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	})
 	JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 

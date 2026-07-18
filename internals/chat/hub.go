@@ -73,6 +73,9 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 		if conn.ReadJSON(&msg) != nil {
 			break
 		}
+		if auth.UserID(r) == 0 {
+			break
+		}
 		msg.Content = strings.TrimSpace(msg.Content)
 		if msg.Type == "message" && msg.To > 0 && msg.To != userID &&
 			msg.Content != "" && len(msg.Content) <= auth.MaxMessageLen {

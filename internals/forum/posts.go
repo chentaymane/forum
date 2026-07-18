@@ -133,16 +133,30 @@ func createPostFromBody(w http.ResponseWriter, r *http.Request, body []byte) {
 	}
 	// Link the post to each selected category.
 	postID, _ := res.LastInsertId()
-	if len(in.Categories) == 0 {
-		// Default to "General" when no categories are selected.
-		var generalID int
-		if err := database.DB.QueryRow(`SELECT id FROM categories WHERE name = 'General'`).Scan(&generalID); err == nil {
-			database.DB.Exec(`INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`, postID, generalID)
+	var generalID int
+	database.DB.QueryRow(`SELECT id FROM categories WHERE name = 'General'`).Scan(&generalID)
+
+	valid := map[int]bool{}
+	rows, err := database.DB.Query(`SELECT id FROM categories`)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id int
+			if rows.Scan(&id) == nil {
+				valid[id] = true
+			}
 		}
-	} else {
-		for _, catID := range in.Categories {
+	}
+
+	seen := map[int]bool{}
+	for _, catID := range in.Categories {
+		if valid[catID] && !seen[catID] {
 			database.DB.Exec(`INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`, postID, catID)
+			seen[catID] = true
 		}
+	}
+	if len(seen) == 0 && generalID > 0 {
+		database.DB.Exec(`INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`, postID, generalID)
 	}
 	auth.JSON(w, http.StatusOK, map[string]any{"id": postID})
 }
