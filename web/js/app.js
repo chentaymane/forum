@@ -36,7 +36,24 @@ authChannel.onmessage = (e) => {
 function showView(name) {
     document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
     document.getElementById(name + "-view").classList.remove("hidden");
-    document.getElementById("layout").classList.toggle("hidden", name === "auth");
+    document.getElementById("layout").classList.toggle("hidden", name === "auth" || name === "error");
+}
+
+// errorTexts maps a status code to the title and message of the error view.
+const errorTexts = {
+    400: ["Bad Request", "The request could not be understood."],
+    404: ["Not Found", "The page you are looking for does not exist."],
+    405: ["Method Not Allowed", "This method is not allowed on this page."],
+    500: ["Server Error", "Something went wrong on our side. Please try again later."],
+};
+
+// showError fills and shows the error view (part of the single page).
+function showError(code) {
+    const [title, msg] = errorTexts[code] || ["Error", "An unexpected error occurred."];
+    document.getElementById("error-code").textContent = code;
+    document.getElementById("error-title").textContent = title;
+    document.getElementById("error-msg").textContent = msg;
+    showView("error");
 }
 
 // api fetches JSON and throws on error responses.
@@ -139,8 +156,13 @@ function enterForum() {
     }, 30000);
 }
 
-// On page load: restore the session if any, otherwise show login.
+// On page load: unknown URLs show the 404 view, otherwise restore the
+// session if any or show the login form.
 window.addEventListener("DOMContentLoaded", async () => {
+    if (location.pathname !== "/") {
+        showError(404);
+        return;
+    }
     try {
         me = await api("/api/me");
         enterForum();
