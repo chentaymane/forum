@@ -113,16 +113,16 @@ document.getElementById("chat-messages").addEventListener(
     }, 500)
 );
 
-// Send a message through the websocket.
-document.getElementById("chat-form").onsubmit = (e) => {
+// Send a message through the websocket. The session is re-validated with the
+// server first so a deleted or tampered cookie logs the user out instead of
+// sending (the websocket itself only authenticates at connect time).
+document.getElementById("chat-form").onsubmit = async (e) => {
     e.preventDefault();
-    if (me && getCookie("rtf_check") !== expectedToken) {
-        logoutLocal();
-        return;
-    }
     const input = document.getElementById("chat-input");
     const content = input.value.trim();
     if (!content || !openChatId || !ws) return;
+    try { await api("/api/me"); } catch { return; } // api() logs out on bad session
+    if (!ws || !openChatId) return; // logged out or chat closed while validating
     ws.send(JSON.stringify({ type: "message", to: openChatId, content: content }));
     input.value = "";
 };

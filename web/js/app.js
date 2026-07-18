@@ -3,6 +3,8 @@
 let me = null; // logged in user {id, nickname}
 const authChannel = new BroadcastChannel("forum-auth");
 let sessionCheckInterval = null;
+let tokenWatchInterval = null;
+let cookieWatchAbort = null;
 let expectedToken = null; // stored rtf_check value to detect cookie tampering
 
 function getCookie(name) {
@@ -12,6 +14,11 @@ function getCookie(name) {
 
 function logoutLocal() {
     clearInterval(sessionCheckInterval);
+    clearInterval(tokenWatchInterval);
+    if (cookieWatchAbort) {
+        cookieWatchAbort.abort();
+        cookieWatchAbort = null;
+    }
     expectedToken = null;
     closeChatEverything();
     me = null;
@@ -97,6 +104,22 @@ function throttle(fn, ms) {
     };
 }
 
+// watchToken logs the user out the moment the rtf_check cookie is changed or
+// removed. cookieStore fires instantly where supported; the interval is a
+// fallback for browsers without it (and for DevTools edits some browsers
+// don't report).
+function watchToken() {
+    const check = () => {
+        if (me && getCookie("rtf_check") !== expectedToken) logoutLocal();
+    };
+    clearInterval(tokenWatchInterval);
+    tokenWatchInterval = setInterval(check, 1000);
+    if ("cookieStore" in window) {
+        cookieWatchAbort = new AbortController();
+        cookieStore.addEventListener("change", check, { signal: cookieWatchAbort.signal });
+    }
+}
+
 // enterForum shows the forum after a successful login/register.
 function enterForum() {
     expectedToken = getCookie("rtf_check");
@@ -105,6 +128,7 @@ function enterForum() {
     loadCategories();
     loadPosts();
     initChat();
+    watchToken();
     clearInterval(sessionCheckInterval);
     sessionCheckInterval = setInterval(async () => {
         try { await api("/api/me"); }
