@@ -24,20 +24,30 @@ function initChat() {
     loadUsers();
 }
 
-// loadUsers renders the sidebar (server orders by last message, then name).
+// loadUsers renders the sidebar in two sections: users you already talk to
+// (most recent first), then everyone else (server keeps each group sorted).
 async function loadUsers() {
     if (!me) return;
     const users = await api("/api/users");
     const ul = document.getElementById("user-list");
     ul.innerHTML = "";
-    users.forEach((u) => {
-        const li = document.createElement("li");
-        li.className = online.has(u.id) ? "online" : "offline";
-        li.innerHTML = `<span class="dot"></span>${esc(u.nickname)}` +
-            (unread.has(u.id) ? `<span class="badge">new</span>` : "");
-        li.onclick = () => openChat(u.id, u.nickname);
-        ul.appendChild(li);
-    });
+    const addGroup = (title, group) => {
+        if (!group.length) return;
+        const header = document.createElement("li");
+        header.className = "user-group";
+        header.textContent = title;
+        ul.appendChild(header);
+        group.forEach((u) => {
+            const li = document.createElement("li");
+            li.className = online.has(u.id) ? "online" : "offline";
+            li.innerHTML = `<span class="dot"></span>${esc(u.nickname)}` +
+                (unread.has(u.id) ? `<span class="badge">new</span>` : "");
+            li.onclick = () => openChat(u.id, u.nickname);
+            ul.appendChild(li);
+        });
+    };
+    addGroup("Recent discussions", users.filter((u) => u.chatted));
+    addGroup("Find friends", users.filter((u) => !u.chatted));
 }
 
 // onMessage handles an incoming (or echoed) private message.

@@ -8,14 +8,16 @@ import (
 	"rtforum/internals/database"
 )
 
-// User is an entry in the chat contact list.
+// User is an entry in the chat contact list. Chatted tells the frontend
+// whether a conversation exists, to split the list into two sections.
 type User struct {
 	ID       int    `json:"id"`
 	Nickname string `json:"nickname"`
+	Chatted  bool   `json:"chatted"`
 }
 
-// GetUsers returns all other users, ordered by most recent message then nickname,
-// so the people you talk to the most float to the top.
+// GetUsers returns all other users: the ones you chatted with first (most
+// recent message first), then the rest alphabetically (case-insensitive).
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	me := auth.UserID(r)
 	rows, err := database.DB.Query(`
@@ -37,6 +39,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		var u User
 		var last string
 		if rows.Scan(&u.ID, &u.Nickname, &last) == nil {
+			u.Chatted = last != ""
 			users = append(users, u)
 		}
 	}
