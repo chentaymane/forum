@@ -523,6 +523,7 @@ aside {
     text-align: center; padding: 2rem;
     animation: fadeUp 0.4s ease both;
 }
+.error-page .auth-brand { margin-bottom: 0; }
 .error-page .error-code {
     font-family: var(--serif); font-size: 7rem; font-weight: 700; line-height: 1;
     margin-top: 1rem;
