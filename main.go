@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"rtforum/internals/auth"
-	"rtforum/internals/chat"
-	"rtforum/internals/database"
-	"rtforum/internals/forum"
+	"forum/internals/auth"
+	"forum/internals/chat"
+	"forum/internals/database"
+	"forum/internals/forum"
 )
 
 // serveSPA writes index.html with the given status code. Unknown routes still

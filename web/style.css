@@ -515,8 +515,11 @@ aside {
 
 /* ── RESPONSIVE ───────────────────────────────────── */
 @media (max-width: 800px) {
-    .content { grid-template-columns: 1fr; padding: 1.5rem 1rem; }
-    aside { position: static; }
+    .content { grid-template-columns: 1fr; padding: 1.5rem 1rem; gap: 1.25rem; }
+    /* The feed loads more posts forever (infinite scroll), so the sidebar
+       must sit ABOVE it on mobile or it could never be reached. */
+    aside { position: static; order: -1; }
+    #user-list { max-height: 200px; overflow-y: auto; }
     nav { padding: 0 1rem; }
     #chat-box { right: 0; left: 0; width: auto; margin: 0 10px; }
     .field-row { flex-direction: column; gap: 0; }

@@ -1,25 +1,9 @@
 // Simple SPA helpers: one view visible at a time, small fetch wrapper.
 
 let me = null; // logged in user {id, nickname}
-const authChannel = new BroadcastChannel("forum-auth");
-let sessionCheckInterval = null;
-let tokenWatchInterval = null;
-let cookieWatchAbort = null;
-let expectedToken = null; // stored rtf_check value to detect cookie tampering
 
-function getCookie(name) {
-    const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]*)"));
-    return match ? decodeURIComponent(match[2]) : null;
-}
-
+// logoutLocal resets the client state and goes back to the login page.
 function logoutLocal() {
-    clearInterval(sessionCheckInterval);
-    clearInterval(tokenWatchInterval);
-    if (cookieWatchAbort) {
-        cookieWatchAbort.abort();
-        cookieWatchAbort = null;
-    }
-    expectedToken = null;
     closeChatEverything();
     me = null;
     if (!document.getElementById("auth-view").classList.contains("hidden")) {
@@ -27,10 +11,6 @@ function logoutLocal() {
     }
     window.location.reload();
 }
-
-authChannel.onmessage = (e) => {
-    if (e.data === "logout") logoutLocal();
-};
 
 // showView hides every .view and shows the requested one.
 function showView(name) {
@@ -57,11 +37,8 @@ function showError(code) {
 }
 
 // api fetches JSON and throws on error responses.
+// A 401 while logged in means the session expired: log out.
 async function api(path, opts) {
-    if (me && getCookie("rtf_check") !== expectedToken) {
-        logoutLocal();
-        throw new Error("session expired");
-    }
     const res = await fetch(path, opts);
     if (res.status === 401 && me) {
         logoutLocal();
@@ -109,7 +86,7 @@ function esc(s) {
     return d.innerHTML;
 }
 
-// throttle limits how often fn can run (used on the chat scroll).
+// throttle limits how often fn can run (used on the scroll events).
 function throttle(fn, ms) {
     let last = 0;
     return (...args) => {
@@ -121,39 +98,13 @@ function throttle(fn, ms) {
     };
 }
 
-// watchToken logs the user out the moment the rtf_check cookie is changed or
-// removed. cookieStore fires instantly where supported; the interval is a
-// fallback for browsers without it (and for DevTools edits some browsers
-// don't report).
-function watchToken() {
-    const check = () => {
-        if (me && getCookie("rtf_check") !== expectedToken) logoutLocal();
-    };
-    clearInterval(tokenWatchInterval);
-    tokenWatchInterval = setInterval(check, 1000);
-    if ("cookieStore" in window) {
-        cookieWatchAbort = new AbortController();
-        cookieStore.addEventListener("change", check, { signal: cookieWatchAbort.signal });
-    }
-}
-
 // enterForum shows the forum after a successful login/register.
 function enterForum() {
-    expectedToken = getCookie("rtf_check");
     document.getElementById("nav-user").textContent = me.nickname;
     showView("feed");
     loadCategories();
     loadPosts();
     initChat();
-    watchToken();
-    clearInterval(sessionCheckInterval);
-    sessionCheckInterval = setInterval(async () => {
-        try { await api("/api/me"); }
-        catch {
-            clearInterval(sessionCheckInterval);
-            logoutLocal();
-        }
-    }, 30000);
 }
 
 // On page load: unknown URLs show the 404 view, otherwise restore the

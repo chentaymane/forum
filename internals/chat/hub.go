@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"rtforum/internals/auth"
-	"rtforum/internals/database"
+	"forum/internals/auth"
+	"forum/internals/database"
 
 	"github.com/gorilla/websocket"
 )

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"rtforum/internals/auth"
-	"rtforum/internals/database"
+	"forum/internals/auth"
+	"forum/internals/database"
 )
 
 // ReactionsHandler likes/dislikes a post or a comment.

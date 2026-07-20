@@ -6,15 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"rtforum/internals/database"
+	"forum/internals/database"
 )
 
 // SESSION_COOKIE_NAME is the name of the cookie holding the session id.
-const SESSION_COOKIE_NAME = "rtf_session"
-
-// CHECK_COOKIE_NAME is a readable mirror of the session cookie so JS can
-// detect tampering (the session cookie itself is HttpOnly).
-const CHECK_COOKIE_NAME = "rtf_check"
+const SESSION_COOKIE_NAME = "forum_session"
 
 // newSessionID returns a random 64 char hex token (256 bits of entropy).
 func newSessionID() (string, error) {
@@ -76,14 +72,6 @@ func createSession(w http.ResponseWriter, userID int) error {
 		Value:    id,
 		Expires:  expiresAt,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Path:     "/",
-	})
-	http.SetCookie(w, &http.Cookie{
-		Name:     CHECK_COOKIE_NAME,
-		Value:    id,
-		Expires:  expiresAt,
-		HttpOnly: false,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 	})

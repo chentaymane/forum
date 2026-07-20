@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"rtforum/internals/auth"
-	"rtforum/internals/database"
+	"forum/internals/auth"
+	"forum/internals/database"
 )
 
 // User is an entry in the chat contact list. Chatted tells the frontend

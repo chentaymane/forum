@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"rtforum/internals/auth"
-	"rtforum/internals/database"
+	"forum/internals/auth"
+	"forum/internals/database"
 )
 
 // CommentsHandler lists a post's comments (GET), creates one (POST), or deletes one (POST with action=delete).

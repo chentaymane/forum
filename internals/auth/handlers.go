@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"rtforum/internals/database"
+	"forum/internals/database"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -114,14 +114,6 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Path:     "/",
-	})
-	http.SetCookie(w, &http.Cookie{
-		Name:     CHECK_COOKIE_NAME,
-		Value:    "",
-		Expires:  time.Unix(0, 0),
-		HttpOnly: false,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 	})
