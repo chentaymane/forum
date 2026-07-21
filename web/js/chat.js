@@ -41,7 +41,7 @@ async function loadUsers() {
             const li = document.createElement("li");
             li.className = online.has(u.id) ? "online" : "offline";
             li.innerHTML = `<span class="dot"></span>${esc(u.nickname)}` +
-                (unread.has(u.id) ? `<span class="badge">new</span>` : "");
+                (unread.has(u.id) ? `<span class="badge"></span>` : "");
             li.onclick = () => openChat(u.id, u.nickname);
             ul.appendChild(li);
         });

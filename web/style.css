@@ -439,12 +439,9 @@ aside {
 }
 .badge {
     margin-left: auto;
-    font-family: var(--mono); font-size: 9px; font-weight: 500;
-    letter-spacing: 0.08em; text-transform: uppercase;
-    background: linear-gradient(135deg, var(--dislike) 0%, #e74c3c 100%);
-    color: #fff; border-radius: 99px; padding: 2px 8px;
-    box-shadow: 0 2px 8px rgba(192,57,43,0.3);
-    animation: pulse 1.6s ease-in-out infinite;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #e74c3c;
+    flex-shrink: 0;
 }
 
 /* ── CHAT BOX ─────────────────────────────────────── */
