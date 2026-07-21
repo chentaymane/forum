@@ -1,0 +1,13 @@
+# Go build output
+/forum
+*.test
+*.out
+
+# Local runtime files
+*.db-shm
+*.db-wal
+
+# Editor and operating-system files
+.DS_Store
+*.swp
+*~

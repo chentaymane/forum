@@ -2,6 +2,67 @@
 
 let me = null; // logged in user {id, nickname}
 
+// showToast displays a small, accessible notification without blocking the page.
+function showToast(message, type = "error") {
+    if (!message) return;
+    const region = document.getElementById("toast-region");
+    const duplicate = [...region.querySelectorAll(".toast-message")]
+        .find((item) => item.textContent === message);
+    if (duplicate) return;
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.setAttribute("role", type === "error" ? "alert" : "status");
+
+    const icon = document.createElement("span");
+    icon.className = "toast-icon";
+    icon.textContent = type === "error" ? "!" : "i";
+
+    const text = document.createElement("span");
+    text.className = "toast-message";
+    text.textContent = message;
+
+    const close = document.createElement("button");
+    close.className = "toast-close";
+    close.type = "button";
+    close.setAttribute("aria-label", "Dismiss notification");
+    close.textContent = "×";
+
+    toast.append(icon, text, close);
+    region.appendChild(toast);
+
+    let timer;
+    const dismiss = () => {
+        clearTimeout(timer);
+        if (!toast.isConnected || toast.classList.contains("toast-out")) return;
+        toast.classList.add("toast-out");
+        toast.addEventListener("animationend", () => toast.remove(), { once: true });
+    };
+    close.addEventListener("click", dismiss);
+    timer = setTimeout(dismiss, 4500);
+}
+
+// Give maxlength fields visible feedback instead of silently rejecting extra text.
+document.addEventListener("beforeinput", (e) => {
+    const field = e.target;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    if (field.maxLength < 0 || !e.data || e.inputType.startsWith("delete")) return;
+    const selected = Math.abs((field.selectionEnd ?? 0) - (field.selectionStart ?? 0));
+    if (field.value.length - selected + e.data.length > field.maxLength) {
+        showToast(`This field is limited to ${field.maxLength} characters.`);
+    }
+}, true);
+
+document.addEventListener("paste", (e) => {
+    const field = e.target;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    if (field.maxLength < 0) return;
+    const pasted = e.clipboardData?.getData("text") || "";
+    const selected = Math.abs((field.selectionEnd ?? 0) - (field.selectionStart ?? 0));
+    if (field.value.length - selected + pasted.length > field.maxLength) {
+        showToast(`This field is limited to ${field.maxLength} characters.`);
+    }
+}, true);
+
 // logoutLocal resets the client state and goes back to the login page.
 function logoutLocal() {
     closeChatEverything();

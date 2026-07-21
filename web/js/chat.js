@@ -128,7 +128,22 @@ document.getElementById("chat-form").onsubmit = (e) => {
     e.preventDefault();
     const input = document.getElementById("chat-input");
     const content = input.value.trim();
-    if (!content || !openChatId || !ws) return;
+    if (!content) {
+        showToast("Write a message before sending.");
+        return;
+    }
+    if (content.length > input.maxLength) {
+        showToast(`Messages are limited to ${input.maxLength} characters.`);
+        return;
+    }
+    if (!openChatId) {
+        showToast("Choose a user before sending a message.");
+        return;
+    }
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        showToast("Chat is not connected yet. Please try again in a moment.");
+        return;
+    }
     ws.send(JSON.stringify({ type: "message", to: openChatId, content: content }));
     input.value = "";
 };

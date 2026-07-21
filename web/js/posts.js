@@ -189,25 +189,33 @@ document.getElementById("post-form").onsubmit = async (e) => {
     const categories = [...document.querySelectorAll("#post-cats input:checked")]
         .map((i) => +i.value)
         .filter((id) => validCatIds.has(id));
-    await api("/api/posts", post({
-        title: f.title.value,
-        content: f.content.value,
-        categories: categories,
-    }));
-    f.reset();
-    loadPosts();
+    try {
+        await api("/api/posts", post({
+            title: f.title.value,
+            content: f.content.value,
+            categories: categories,
+        }));
+        f.reset();
+        loadPosts();
+    } catch (err) {
+        showToast(err.message || "Could not publish the post.");
+    }
 };
 
 // Create a comment
 document.getElementById("comment-form").onsubmit = async (e) => {
     e.preventDefault();
     const f = e.target;
-    await api("/api/comments", post({ postId: currentPostId, content: f.content.value }));
-    f.reset();
-    // Bump the cached counter (the feed is redrawn when going back anyway).
-    const p = posts.find((x) => x.id === currentPostId);
-    if (p) p.comments++;
-    loadComments();
+    try {
+        await api("/api/comments", post({ postId: currentPostId, content: f.content.value }));
+        f.reset();
+        // Bump the cached counter (the feed is redrawn when going back anyway).
+        const p = posts.find((x) => x.id === currentPostId);
+        if (p) p.comments++;
+        loadComments();
+    } catch (err) {
+        showToast(err.message || "Could not publish the comment.");
+    }
 };
 
 // Back to the feed
@@ -232,7 +240,7 @@ async function deletePost(event, id) {
             loadPosts();
         }
     } catch (e) {
-        confirmAction(e.message || "Failed to delete");
+        showToast(e.message || "Failed to delete the post.");
     }
 }
 
@@ -247,6 +255,6 @@ async function deleteComment(event, id) {
         const p = posts.find((x) => x.id === currentPostId);
         if (p) p.comments--;
     } catch (e) {
-        confirmAction(e.message || "Failed to delete");
+        showToast(e.message || "Failed to delete the comment.");
     }
 }
