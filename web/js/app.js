@@ -59,6 +59,8 @@ document.addEventListener("paste", (e) => {
     const pasted = e.clipboardData?.getData("text") || "";
     const selected = Math.abs((field.selectionEnd ?? 0) - (field.selectionStart ?? 0));
     if (field.value.length - selected + pasted.length > field.maxLength) {
+        // Block the whole paste instead of letting the browser cut it to fit.
+        e.preventDefault();
         showToast(`This field is limited to ${field.maxLength} characters.`);
     }
 }, true);
