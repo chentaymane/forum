@@ -84,6 +84,14 @@ func createCommentFromBody(w http.ResponseWriter, r *http.Request, body []byte) 
 		return
 	}
 
+	// Reject up front if the post is gone (e.g. deleted from another tab), so
+	// the client gets a clear "post not found" instead of a generic failure.
+	var exists int
+	if database.DB.QueryRow(`SELECT 1 FROM posts WHERE id = ?`, in.PostID).Scan(&exists) != nil {
+		auth.Error(w, http.StatusNotFound, "post not found")
+		return
+	}
+
 	_, err := database.DB.Exec(`INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)`,
 		in.PostID, auth.UserID(r), in.Content)
 	if err != nil {

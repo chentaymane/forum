@@ -10,6 +10,7 @@ let loadingMsgs = false;  // true while a history request is in flight
 
 // initChat connects the websocket and loads the user list.
 function initChat() {
+    closeChatEverything(); // drop any previous connection so we never open two at once
     const proto = location.protocol === "https:" ? "wss://" : "ws://";
     ws = new WebSocket(proto + location.host + "/ws");
     ws.onmessage = (e) => {

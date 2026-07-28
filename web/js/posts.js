@@ -63,7 +63,18 @@ async function react(event, target, id, type) {
     const body = { type };
     if (target === "post") body.postId = id;
     else body.commentId = id;
-    const res = await api("/api/reactions", post(body));
+
+    let res;
+    try {
+        res = await api("/api/reactions", post(body));
+    } catch (err) {
+        // The post/comment was removed (e.g. from another tab): tell the user
+        // and refresh so the feed no longer shows the stale item.
+        showToast(err.message || "Could not react.");
+        if (target === "post") loadPosts();
+        else loadComments();
+        return;
+    }
 
     const actions = event.target.closest(".post-actions");
     const like = actions.querySelector(".btn-like");

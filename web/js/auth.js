@@ -23,6 +23,7 @@ document.getElementById("show-login").onclick = (e) => {
 // Login with nickname or e-mail + password
 document.getElementById("login-form").onsubmit = async (e) => {
     e.preventDefault();
+    if (me) return; // already logged in: log out first (avoids a second connection)
     const f = e.target;
     try {
         me = await api("/api/login", post({
@@ -40,6 +41,7 @@ document.getElementById("login-form").onsubmit = async (e) => {
 // Register a new account (logs the user in directly)
 document.getElementById("register-form").onsubmit = async (e) => {
     e.preventDefault();
+    if (me) return; // already logged in: log out first (avoids a second connection)
     const f = e.target;
     try {
         me = await api("/api/register", post({

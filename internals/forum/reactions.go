@@ -45,7 +45,9 @@ func ReactionsHandler(w http.ResponseWriter, r *http.Request) {
 		if _, err := database.DB.Exec(
 			`INSERT INTO reactions (user_id, `+column+`, type) VALUES (?, ?, ?)`,
 			userID, target, in.Type); err != nil {
-			auth.Error(w, http.StatusBadRequest, "invalid post/comment id")
+			// The foreign key rejects the insert when the post or comment is
+			// gone (e.g. deleted from another tab).
+			auth.Error(w, http.StatusNotFound, "post or comment not found")
 			return
 		}
 	}

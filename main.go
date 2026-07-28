@@ -69,18 +69,18 @@ func main() {
 	}
 	defer database.DB.Close()
 
-	// Static files + the single HTML page
+	// Static files + the single HTML page (always the same page, only the
+	// status code changes, so every case goes through serveSPA).
 	http.HandleFunc("/static/", staticHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
+		switch {
+		case r.URL.Path != "/":
 			serveSPA(w, http.StatusNotFound)
-			return
-		}
-		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		case r.Method != http.MethodGet && r.Method != http.MethodHead:
 			serveSPA(w, http.StatusMethodNotAllowed)
-			return
+		default:
+			serveSPA(w, http.StatusOK)
 		}
-		http.ServeFile(w, r, "./web/index.html")
 	})
 
 	// Auth API (MaxBody caps the size of every request body)

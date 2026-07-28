@@ -15,6 +15,13 @@ import (
 
 // RegisterHandler creates a new user account and logs it in.
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+	// Enforced here, not just in the JS: an already logged in client (e.g. one
+	// that edited the page to re-show the form) must log out first, so a user
+	// never ends up with two sessions / two chat connections.
+	if UserID(r) != 0 {
+		Error(w, http.StatusForbidden, "already logged in")
+		return
+	}
 	var in struct {
 		Nickname  string `json:"nickname"`
 		Age       int    `json:"age"`
@@ -71,6 +78,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 // LoginHandler logs a user in with nickname or email + password.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	// Reject a login from an already authenticated client (see RegisterHandler).
+	if UserID(r) != 0 {
+		Error(w, http.StatusForbidden, "already logged in")
+		return
+	}
 	var in struct {
 		Identifier string `json:"identifier"`
 		Password   string `json:"password"`
