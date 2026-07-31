@@ -13,15 +13,17 @@ function initChat() {
     closeChatEverything(); // drop any previous connection so we never open two at once
     const proto = location.protocol === "https:" ? "wss://" : "ws://";
     ws = new WebSocket(proto + location.host + "/ws");
-    ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === "online") {
-            online = new Set(msg.users);
-            loadUsers();
-        } else if (msg.type === "message") {
-            onMessage(msg);
-        }
-    };
+ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === "online") {
+        online = new Set(msg.users);
+        loadUsers();
+    } else if (msg.type === "message") {
+        onMessage(msg);
+    } else if (msg.type === "typing") {
+        showTyping(msg.from);
+    }
+};
     loadUsers();
 }
 
@@ -64,6 +66,14 @@ function onMessage(msg) {
     }
     loadUsers(); // reorder like discord
 }
+
+const sendTyping = throttle(() => {
+    if (!openChatId || !ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: "typing", to: openChatId }));
+}, 2000);
+
+document.getElementById("chat-input").addEventListener("input", sendTyping);
+
 
 // renderMsg builds one message element: date + nickname + content.
 function renderMsg(m) {

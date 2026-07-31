@@ -52,6 +52,19 @@ document.addEventListener("beforeinput", (e) => {
     }
 }, true);
 
+let typingTimer = null;
+
+function showTyping(fromId) {
+    if (openChatId !== fromId) return;   // pas la conversation ouverte
+
+    const el = document.getElementById("typing-indicator");
+    el.innerHTML = `<span class="dots"><i></i><i></i><i></i></span>`;
+    el.classList.remove("hidden");
+
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => el.classList.add("hidden"), 3000);
+}
+
 document.addEventListener("paste", (e) => {
     const field = e.target;
     if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;

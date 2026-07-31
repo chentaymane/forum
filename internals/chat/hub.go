@@ -68,20 +68,28 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 	broadcastOnline()
 
 	// Read messages until the client disconnects.
-	for {
-		var msg wsMsg
-		if conn.ReadJSON(&msg) != nil {
-			break
-		}
-		if auth.UserID(r) == 0 {
-			break
-		}
-		msg.Content = strings.TrimSpace(msg.Content)
-		if msg.Type == "message" && msg.To > 0 && msg.To != userID &&
-			msg.Content != "" && len(msg.Content) <= auth.MaxMessageLen {
-			deliver(userID, nickname, msg)
-		}
-	}
+for {
+    var msg wsMsg
+    if conn.ReadJSON(&msg) != nil { break }
+    if auth.UserID(r) == 0 { break }
+    msg.Content = strings.TrimSpace(msg.Content)
+
+    switch msg.Type {
+    case "message":
+        if msg.To > 0 && msg.To != userID &&
+            msg.Content != "" && len(msg.Content) <= auth.MaxMessageLen {
+            deliver(userID, nickname, msg)
+        }
+    case "typing":
+        if msg.To > 0 && msg.To != userID {
+            sendTo(msg.To, wsMsg{
+                Type:     "typing",
+                From:     userID,
+                Nickname: nickname,
+            })
+        }
+    }
+}
 
 	// Unregister this connection, dropping the user entry when it was the last.
 	mu.Lock()
