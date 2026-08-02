@@ -62,7 +62,14 @@ function showTyping(fromId) {
     el.classList.remove("hidden");
 
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => el.classList.add("hidden"), 3000);
+    // Safety net only: the peer sends "typing_stop" when they stop, so this
+    // fires just for a lost frame or a peer that drops mid-sentence.
+    typingTimer = setTimeout(hideTyping, 3000);
+}
+
+function hideTyping() {
+    clearTimeout(typingTimer);
+    document.getElementById("typing-indicator").classList.add("hidden");
 }
 
 document.addEventListener("paste", (e) => {

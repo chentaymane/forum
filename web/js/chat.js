@@ -22,6 +22,8 @@ ws.onmessage = (e) => {
         onMessage(msg);
     } else if (msg.type === "typing") {
         showTyping(msg.from);
+    } else if (msg.type === "typing_stop") {
+        hideTyping();
     }
 };
     loadUsers();
@@ -67,12 +69,29 @@ function onMessage(msg) {
     loadUsers(); // reorder like discord
 }
 
+// Typing indicator: ping while typing, then one "typing_stop" as soon as the
+// keyboard goes quiet, so the peer hides the dots right away instead of
+// waiting for a timeout to expire.
 const sendTyping = throttle(() => {
     if (!openChatId || !ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send(JSON.stringify({ type: "typing", to: openChatId }));
-}, 2000);
+}, 400);
 
-document.getElementById("chat-input").addEventListener("input", sendTyping);
+let typingStopTimer = null;
+
+// stopTyping is safe to call any time. Call it before openChatId changes.
+function stopTyping() {
+    clearTimeout(typingStopTimer);
+    if (!openChatId || !ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: "typing_stop", to: openChatId }));
+}
+
+document.getElementById("chat-input").addEventListener("input", () => {
+    sendTyping();
+    clearTimeout(typingStopTimer);
+    // 500 > the 400 throttle above, so typing again after a stop always pings.
+    typingStopTimer = setTimeout(stopTyping, 500);
+});
 
 
 // renderMsg builds one message element: date + nickname + content.
@@ -85,6 +104,8 @@ function renderMsg(m) {
 
 // openChat opens the chat box and loads the last 10 messages.
 async function openChat(id, nickname) {
+    stopTyping(); // warn the previous peer before openChatId moves away
+    hideTyping(); // drop dots left over from the previous conversation
     openChatId = id;
     loaded = 0;
     historyDone = false;
@@ -157,6 +178,7 @@ document.getElementById("chat-form").onsubmit = (e) => {
     }
     ws.send(JSON.stringify({ type: "message", to: openChatId, content: content }));
     input.value = "";
+    stopTyping();
 };
 
 // Close the chat box.

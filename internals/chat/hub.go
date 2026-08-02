@@ -80,10 +80,11 @@ for {
             msg.Content != "" && len(msg.Content) <= auth.MaxMessageLen {
             deliver(userID, nickname, msg)
         }
-    case "typing":
+    // "typing" repeats while the user types, "typing_stop" comes once they stop.
+    case "typing", "typing_stop":
         if msg.To > 0 && msg.To != userID {
             sendTo(msg.To, wsMsg{
-                Type:     "typing",
+                Type:     msg.Type,
                 From:     userID,
                 Nickname: nickname,
             })
