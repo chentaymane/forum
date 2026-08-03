@@ -11,22 +11,22 @@ let loadingMsgs = false;  // true while a history request is in flight
 // initChat connects the websocket and loads the user list.
 function initChat() {
     closeChatEverything(); // drop any previous connection so we never open two at once
-    const el = document.getElementById("typing-indicator");
     const proto = location.protocol === "https:" ? "wss://" : "ws://";
     ws = new WebSocket(proto + location.host + "/ws");
-ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === "online") {
-        online = new Set(msg.users);
-        loadUsers();
-    } else if (msg.type === "message") {
-        onMessage(msg);
-    } else if (msg.type === "typing") {
-        showTyping(msg.from);
-    } else if (msg.type === "typing_stop") {
-        hideTyping();
-    }
-};
+    ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "online") {
+            online = new Set(msg.users);
+            loadUsers();
+        } else if (msg.type === "message") {
+            onMessage(msg);
+        } else if (msg.type === "typing") {
+            showTyping(msg.from, msg.nickname);
+        } else if (msg.type === "typing_stop" && msg.from === openChatId) {
+            // Only the peer on screen may hide the dots, never another chat.
+            hideTyping();
+        }
+    };
     loadUsers();
 }
 
@@ -60,6 +60,7 @@ async function loadUsers() {
 function onMessage(msg) {
     const other = msg.from === me.id ? msg.to : msg.from;
     if (openChatId === other) {
+        if (msg.from !== me.id) hideTyping(); // they sent it, so they stopped typing
         const box = document.getElementById("chat-messages");
         box.appendChild(renderMsg(msg));
         box.scrollTop = box.scrollHeight;
@@ -90,7 +91,8 @@ function stopTyping() {
 document.getElementById("chat-input").addEventListener("input", () => {
     sendTyping();
     clearTimeout(typingStopTimer);
-    // 500 > the 400 throttle above, so typing again after a stop always pings.
+    // Short pause before the stop, so the dots do not flicker between words.
+    // 1200 > the 400 throttle above, so typing again after a stop always pings.
     typingStopTimer = setTimeout(stopTyping, 1200);
 });
 
@@ -184,20 +186,20 @@ document.getElementById("chat-form").onsubmit = (e) => {
 
 // Close the chat box.
 document.getElementById("chat-close").onclick = () => {
+    stopTyping(); // must run first: it needs openChatId to know who to warn
     openChatId = 0;
-    document.getElementById("chat-box").classList.add("hidden");
-    stopTyping();
     hideTyping();
+    document.getElementById("chat-box").classList.add("hidden");
 };
 
 // closeChatEverything resets the chat state on logout.
 function closeChatEverything() {
+    stopTyping(); // before the socket closes, while openChatId is still set
     if (ws) {
         ws.close();
         ws = null;
     }
     openChatId = 0;
-    stopTyping();
     hideTyping();
     online = new Set();
     unread = new Set();

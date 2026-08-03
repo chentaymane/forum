@@ -52,30 +52,34 @@ document.addEventListener("beforeinput", (e) => {
     }
 }, true);
 
+// Typing indicator. showTyping is called on every "typing" ping from the peer,
+// so it must be cheap and must not restart the dot animation: the markup is
+// rebuilt only when the person typing changes.
 let typingTimer = null;
+let typingFrom = 0; // id of the user the dots are currently shown for
 
-function showTyping(fromId) {
-    if (openChatId !== fromId) return;   // pas la conversation ouverte
-    
+function showTyping(fromId, nickname) {
+    if (openChatId !== fromId) return; // not the conversation on screen
+
     const el = document.getElementById("typing-indicator");
-    if (!el.classList.contains("hidden")) {
-        return;
+    if (typingFrom !== fromId) {
+        typingFrom = fromId;
+        el.innerHTML = `<span class="bubble">` +
+            `<span class="name">${esc(nickname || "Someone")} is typing</span>` +
+            `<span class="dots"><i></i><i></i><i></i></span></span>`;
+        el.classList.add("show");
     }
-    
-    el.innerHTML = `<span class="dots"><i></i><i></i><i></i></span>`;
-    el.classList.remove("hidden");
 
+    // Safety net: the peer sends "typing_stop" when they stop, so this only
+    // fires for a lost frame or a peer that drops mid-sentence.
     clearTimeout(typingTimer);
-    // Safety net only: the peer sends "typing_stop" when they stop, so this
-    // fires just for a lost frame or a peer that drops mid-sentence.
-    if (el.classList.contains("hidden")){
-        typingTimer = setTimeout(hideTyping, 3000);
-    }
+    typingTimer = setTimeout(hideTyping, 3000);
 }
 
 function hideTyping() {
     clearTimeout(typingTimer);
-    document.getElementById("typing-indicator").classList.add("hidden");
+    typingFrom = 0;
+    document.getElementById("typing-indicator").classList.remove("show");
 }
 
 document.addEventListener("paste", (e) => {
