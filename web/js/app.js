@@ -56,15 +56,21 @@ let typingTimer = null;
 
 function showTyping(fromId) {
     if (openChatId !== fromId) return;   // pas la conversation ouverte
-
+    
     const el = document.getElementById("typing-indicator");
+    if (!el.classList.contains("hidden")) {
+        return;
+    }
+    
     el.innerHTML = `<span class="dots"><i></i><i></i><i></i></span>`;
     el.classList.remove("hidden");
 
     clearTimeout(typingTimer);
     // Safety net only: the peer sends "typing_stop" when they stop, so this
     // fires just for a lost frame or a peer that drops mid-sentence.
-    typingTimer = setTimeout(hideTyping, 3000);
+    if (el.classList.contains("hidden")){
+        typingTimer = setTimeout(hideTyping, 3000);
+    }
 }
 
 function hideTyping() {

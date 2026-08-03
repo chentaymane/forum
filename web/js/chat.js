@@ -11,6 +11,7 @@ let loadingMsgs = false;  // true while a history request is in flight
 // initChat connects the websocket and loads the user list.
 function initChat() {
     closeChatEverything(); // drop any previous connection so we never open two at once
+    const el = document.getElementById("typing-indicator");
     const proto = location.protocol === "https:" ? "wss://" : "ws://";
     ws = new WebSocket(proto + location.host + "/ws");
 ws.onmessage = (e) => {
@@ -90,7 +91,7 @@ document.getElementById("chat-input").addEventListener("input", () => {
     sendTyping();
     clearTimeout(typingStopTimer);
     // 500 > the 400 throttle above, so typing again after a stop always pings.
-    typingStopTimer = setTimeout(stopTyping, 500);
+    typingStopTimer = setTimeout(stopTyping, 1200);
 });
 
 
@@ -185,6 +186,8 @@ document.getElementById("chat-form").onsubmit = (e) => {
 document.getElementById("chat-close").onclick = () => {
     openChatId = 0;
     document.getElementById("chat-box").classList.add("hidden");
+    stopTyping();
+    hideTyping();
 };
 
 // closeChatEverything resets the chat state on logout.
@@ -194,6 +197,8 @@ function closeChatEverything() {
         ws = null;
     }
     openChatId = 0;
+    stopTyping();
+    hideTyping();
     online = new Set();
     unread = new Set();
     document.getElementById("chat-box").classList.add("hidden");
